@@ -1,0 +1,26 @@
+{
+  "name": "jort-eeltink",
+  "version": "1.0.0",
+  "description": "Voor school",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jortjeeltink-create/Jort-Eeltink.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jortjeeltink-create/Jort-Eeltink/issues"
+  },
+  "homepage": "https://github.com/jortjeeltink-create/Jort-Eeltink#readme",
+  "dependencies": {
+    "pptxgenjs": "^4.0.1"
+  }
+}

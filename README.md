@@ -6,7 +6,7 @@ In `.claude/agents/` staan agents die je in Claude Code kunt gebruiken, voor all
 
 | Agent | Waarvoor |
 |---|---|
-| `maker` | Maakt samenvattingen, oefentoetsen, flashcards, uitgewerkte voorbeelden en mindmaps |
+| `maker` | Maakt je schoolopdrachten (teksten, analyses, posts, scripts, brieven) volgens `docs/studieoverzicht.md` |
 | `uitleg-tutor` | Legt stof stap voor stap uit en helpt met hints |
 | `overhoorder` | Overhoort je voor een toets |
 | `schrijfcoach` | Geeft feedback op je verslagen en opstellen |

@@ -86,6 +86,7 @@ function mdNaarWord(md, opties, lib) {
 
   const doc = new D.Document({
     creator: o.auteur,
+    lastModifiedBy: o.auteur,
     title: o.titel || (o.voorblad && o.voorblad.titel) || "Document",
     styles: {
       default: { document: { run: { font: FONT, size: 22 }, paragraph: { spacing: { line: 300 } } } },

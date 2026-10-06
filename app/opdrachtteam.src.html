@@ -50,7 +50,9 @@ select:focus-visible, textarea:focus-visible, input:focus-visible, button:focus-
 details { border-top: 1px solid var(--line); padding-top: 12px }
 details > summary { cursor: pointer; font-weight: 700; font-size: 0.92rem }
 details[open] > summary { margin-bottom: 12px }
-details .field + .field { margin-top: 12px }
+details .field + .field, details .vink { margin-top: 12px }
+.vink { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; font-size: 0.88rem; color: var(--muted) }
+.vink input { margin-top: 3px; accent-color: var(--accent) }
 
 .btn { font: 700 1rem/1 var(--f-body); border-radius: 999px; padding: 13px 22px; border: 1px solid transparent; cursor: pointer; background: var(--accent); color: var(--accent-ink) }
 .btn:disabled { opacity: 0.5; cursor: not-allowed }
@@ -161,6 +163,7 @@ details .field + .field { margin-top: 12px }
             <textarea id="stijl" placeholder="Plak hier een eerdere tekst van jezelf. De Jort-check laat de nieuwe tekst daarop lijken."></textarea>
             <small>Wordt alleen in deze browser onthouden.</small>
           </label>
+          <label class="vink"><input type="checkbox" id="notities"> <span>Spreektekst ook in de PowerPoint-notities zetten. Let op: je docent kan die zien als je het bestand inlevert. Je krijgt de spreektekst ook als apart Word-bestand.</span></label>
           <label class="field" id="beeld-veld" hidden>
             <span>Foto's van de opdracht of sheets</span>
             <input type="file" id="beelden" accept="image/*" multiple>
@@ -520,8 +523,15 @@ ${fouten.map((f) => "- " + f).join("\n")}`), { klaar: "Verbeterde versie klaar" 
     ronde.textContent = "PowerPoint maken";
     const minuten = plan.presentatieMinuten || 5;
     const SLIDETYPES = `Slidetypes (veld "type") en hoeveel tekst erop past:
-titel {titel (max 8 woorden), ondertitel (max 12)} · punten {titel, punten:[max 5, elk max 12 woorden], kern (max 12 woorden)} · kaarten {titel, kaarten:[{letter?, kop (max 3 woorden), tekst (max 18 woorden)}] 2-6 kaarten} · tijdlijn {titel, stappen:[{jaar, tekst (max 8 woorden)}] 3-6} · matrix {titel, assen?:[x-as, y-as], vakken:[{kop, punten:[max 3, elk max 6 woorden]}] precies 4} · getal {titel, getal (max 6 tekens, bijv. "75%" of "2,1 mld"), label (max 8 woorden), tekst (max 35 woorden), bron?} · stelling {tekst (max 15 woorden), door?} · afbeelding {titel, afbeelding: "beschrijving van de foto die Jort moet invoegen", tekst? (max 30 woorden)} · bronnen {bronnen:[..]} · afsluiting {titel, punten?}
+titel {titel (max 8 woorden), ondertitel (max 12)} · punten {titel, punten:[max 5, elk max 12 woorden], kern (max 12 woorden)} · kaarten {titel, kaarten:[{kop (max 3 woorden), tekst (max 18 woorden)}] 2-6 kaarten} · tijdlijn {titel, stappen:[{jaar, tekst (max 8 woorden)}] 3-6} · matrix {titel, assen?:[x-as, y-as], vakken:[{kop, punten:[max 3, elk max 6 woorden]}] precies 4} · getal {titel, getal (max 6 tekens, bijv. "75%" of "2,1 mld"), label (max 8 woorden), tekst (max 35 woorden), bron?} · stelling {tekst (max 15 woorden)} · afbeelding {titel, afbeelding: "beschrijving van de foto die Jort moet invoegen", tekst? (max 30 woorden)} · bronnen {bronnen:[..]} · afsluiting {titel, punten?}
 Titels: max 7 woorden. Elke dia krijgt ook "notities".`;
+    const MENSELIJK = `Maak de dia's zoals een student van 18 ze zelf in PowerPoint zou maken. Een docent mag niet denken: dit is AI.
+- Gewone, korte titels zoals een student ze typt: "Wat is PESTEL?", "Politiek", "Mijn conclusie". Geen titels met een dubbele punt ("PESTEL: een diepgaande analyse"), geen "Introductie", "Agenda", "Key takeaways", "Samenvatting en aanbevelingen".
+- Geen labels of meta-tekst op de dia: niets over de opdracht, het vak, de week, de docent of "deze presentatie". Geen "Kern:", "Doel:", "Vraag aan de klas", "Bron:" midden op een dia.
+- Punten zijn korte stukjes tekst, geen volzinnen met een punt erachter. Niet alles perfect even lang of in hetzelfde rijtje van drie.
+- Geen emoji. Geen dure woorden.
+- Titeldia: alleen de titel en eventueel een korte ondertitel. Afsluiting: alleen "${taal === "en" ? "Questions?" : "Vragen?"}" of iets kort en gewoons, zonder punten eronder.
+- Niet te veel dia's: ongeveer 1 per minuut.`;
     let deck = await vraag("ppt", `Je bent de PowerPoint-maker in een team dat een schoolopdracht voor Jort maakt. Maak een presentatie van ongeveer ${minuten} minuten over de uitgewerkte opdracht hieronder, plus precies wat Jort per dia zegt.
 ${ctx}
 
@@ -532,6 +542,7 @@ Regels voor de dia's:
 - ALLES in het ${TAALNAAM[taal]}: titels, punten, kaarten, labels, notities. Ook de titel van de bronnendia en de afsluiting${taal === "en" ? ' (bijv. "References", "Questions?")' : ""}.
 - Ongeveer 1 dia per minuut, plus titel, bronnen en afsluiting. Wissel de types af: nooit drie keer hetzelfde type achter elkaar. Gebruik waar het kan kaarten, matrix, tijdlijn, getal of stelling in plaats van alleen punten.
 - Weinig tekst op een dia en houd je aan de maxima hieronder; het verhaal staat in de notities.
+${MENSELIJK}
 - In "notities" staat de spreektekst: wat Jort letterlijk zegt, in spreektaal, in de ik-vorm. Samen ongeveer ${minuten * 130} woorden.
 - Zet geen feiten of bronnen in de dia's die niet in de uitgewerkte opdracht staan. [VUL IN]-plekken mag je overnemen.
 ${REGELS}
@@ -558,6 +569,8 @@ ${JSON.stringify(dk)}
 Check per dia:
 1. Taal: staat ALLES in het ${TAALNAAM[taal]}? Titels, punten, kaarten, labels, assen, bronnentitel, afsluiting EN de notities. Elk woord in een andere taal is een probleem (namen, merknamen en titels van bronnen mogen).
 2. Opmaak: past de tekst (zie meting), niet te veel tekst, geen lege of halve dia's, titels kort, geen herhaling van hetzelfde type, logische volgorde.
+4. Echtheid: ziet het eruit alsof een student van 18 het zelf maakte? Alles wat naar AI ruikt is een probleem. Regels:
+${MENSELIJK}
 3. Inhoud: klopt het met elkaar, sluit de spreektekst aan op de dia, past de totale spreektekst bij ${minuten} minuten (ongeveer ${minuten * 130} woorden)?
 ${REGELS}
 
@@ -582,6 +595,7 @@ HUIDIGE PRESENTATIE (JSON):
 ${JSON.stringify(deck)}
 
 ${SLIDETYPES}
+${MENSELIJK}
 ${REGELS}
 
 Antwoord alleen met de complete JSON in dezelfde vorm: {"titel", "thema", "slides": [...]}`, { json: true, klaar: "Dia's verbeterd" });
@@ -708,7 +722,7 @@ async function bewaar(soort) {
 /* ---------- PowerPoint bouwen (tools/deck-layout.js) ---------- */
 const deckInfo = (r) => ({ vak: r.vak, week: r.week, auteur: "Jort Eeltink" });
 async function bouwDeck(spec, r) {
-  return await indelingNaarPptx(maakIndeling(spec, deckInfo(r)), PptxGenJS, deckInfo(r)).write({ outputType: "blob" });
+  return await indelingNaarPptx(maakIndeling(spec, deckInfo(r)), PptxGenJS, deckInfo(r), { notities: $("#notities").checked }).write({ outputType: "blob" });
 }
 
 if (R) toonResultaat(R); else toonResultaat({});

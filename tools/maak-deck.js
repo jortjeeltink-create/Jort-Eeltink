@@ -4,6 +4,7 @@
 //
 // JSON: { "titel", "thema": "digitaal|zakelijk|groen|energiek", "taal": "nl|en", "vak", "week", "slides": [...] }
 // Slidetypes en velden: zie tools/deck-layout.js. Elke slide heeft "notities" met de spreektekst.
+// De spreektekst komt alleen in de PowerPoint-notities met "notitiesInPptx": true (standaard niet).
 // Waarschuwingen (tekst die niet past, te veel punten, geen spreektekst) worden getoond; los ze op in de JSON.
 
 const fs = require("fs");
@@ -21,7 +22,7 @@ const info = { vak: spec.vak || "", week: spec.week || "", auteur: spec.auteur |
 const indeling = maakIndeling(spec, info);
 const uit = path.join(path.dirname(bestand), spec.bestand || "presentatie.pptx");
 
-indelingNaarPptx(indeling, PptxGenJS, info).writeFile({ fileName: uit }).then(() => {
+indelingNaarPptx(indeling, PptxGenJS, info, { notities: !!spec.notitiesInPptx }).writeFile({ fileName: uit }).then(() => {
   console.log(`Klaar: ${uit}`);
   if (indeling.waarschuwingen.length) {
     console.log(`\n${indeling.waarschuwingen.length} waarschuwing(en):`);

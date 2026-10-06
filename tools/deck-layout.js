@@ -25,11 +25,10 @@ function maakIndeling(spec, info) {
   var L = DECK_LABELS[spec.taal] || DECK_LABELS.nl;
   var waarschuwingen = [];
   var str = function (v) { return v == null ? "" : String(v) };
-  var voet = [info.vak, info.week ? L.week + " " + info.week : ""].filter(Boolean).join(" · ");
 
   // Schat hoeveel ruimte tekst nodig heeft (Calibri ~0,5 em per teken, Cambria ~0,56 em)
   function nodig(it, size) {
-    var em = (it.face === "kop" ? 0.6 : 0.5) * (it.bold ? 1.06 : 1);
+    var em = (it.face === "kop" ? 0.62 : 0.5) * (it.bold ? (it.face === "kop" ? 1.12 : 1.06) : 1);
     var paras = it.runs ? it.runs : [{ t: str(it.tekst) }];
     var regels = 0, extra = 0;
     paras.forEach(function (p) {
@@ -64,10 +63,9 @@ function maakIndeling(spec, info) {
 
     switch (d.type) {
       case "titel":
-        O(0.5, 0.6, 0.6, K.accent); O(0.95, 0.6, 0.6, K.accent2, 20);
         T({ x: 0.5, y: 1.5, w: 9, h: 1.5, tekst: str(d.titel), size: 40, min: 26, bold: true, face: "kop", kleur: K.licht, valign: "bottom", wat: "De titel" });
         if (d.ondertitel) T({ x: 0.5, y: 3.15, w: 9, h: 0.9, tekst: str(d.ondertitel), size: 18, min: 14, kleur: K.zacht, wat: "De ondertitel" });
-        T({ x: 0.5, y: 4.7, w: 9, h: 0.4, tekst: [info.auteur || "Jort Eeltink", info.vak].filter(Boolean).join("  ·  "), size: 12, kleur: K.zacht });
+        T({ x: 0.5, y: 4.6, w: 9, h: 0.4, tekst: info.auteur || "Jort Eeltink", size: 14, kleur: K.zacht });
         break;
       case "punten":
         titel(d.titel);
@@ -75,8 +73,7 @@ function maakIndeling(spec, info) {
         T({ x: 0.5, y: 1.35, w: b, h: 3.6, runs: lijst(d.punten), ruimte: 8, size: 18, min: 13, valign: "top", wat: "De opsomming" });
         if (d.kern) {
           R(6.2, 1.35, 3.3, 3.5, K.donker);
-          T({ x: 6.5, y: 1.6, w: 2.7, h: 0.4, tekst: L.kern, size: 12, bold: true, kleur: K.accent2 });
-          T({ x: 6.5, y: 2.05, w: 2.7, h: 2.6, tekst: str(d.kern), size: 20, min: 14, bold: true, face: "kop", kleur: K.licht, valign: "top", wat: "De kern" });
+          T({ x: 6.5, y: 1.65, w: 2.7, h: 2.9, tekst: str(d.kern), size: 22, min: 14, bold: true, face: "kop", kleur: K.licht, valign: "middle", wat: "De kern" });
         }
         break;
       case "kaarten":
@@ -87,10 +84,8 @@ function maakIndeling(spec, info) {
         ks.forEach(function (k, j) {
           var x = 0.5 + (j % kol) * (w + g), y = 1.35 + Math.floor(j / kol) * (h + g);
           R(x, y, w, h);
-          O(x + 0.2, y + 0.2, 0.42, j % 2 ? K.accent2 : K.accent);
-          T({ x: x + 0.2, y: y + 0.2, w: 0.42, h: 0.42, tekst: str(k.letter || j + 1), size: 12, bold: true, kleur: K.licht, align: "center", valign: "middle" });
-          T({ x: x + 0.75, y: y + 0.2, w: w - 0.95, h: 0.42, tekst: str(k.kop), size: 15, min: 11, bold: true, kleur: K.donker, valign: "middle", wat: "Kop van kaart " + (j + 1) });
-          T({ x: x + 0.2, y: y + 0.75, w: w - 0.4, h: h - 0.9, tekst: str(k.tekst), size: rij > 1 ? 13 : 15, min: 11, valign: "top", wat: "Tekst van kaart " + (j + 1) });
+          T({ x: x + 0.25, y: y + 0.2, w: w - 0.5, h: 0.45, tekst: str(k.kop), size: 16, min: 11, bold: true, kleur: j % 2 ? K.accent2 : K.accent, valign: "middle", wat: "Kop van kaart " + (j + 1) });
+          T({ x: x + 0.25, y: y + 0.75, w: w - 0.5, h: h - 0.9, tekst: str(k.tekst), size: rij > 1 ? 13 : 15, min: 11, valign: "top", wat: "Tekst van kaart " + (j + 1) });
         });
         break;
       case "tijdlijn":
@@ -128,7 +123,6 @@ function maakIndeling(spec, info) {
         if (d.bron) T({ x: 5.1, y: 4.45, w: 4.4, h: 0.45, tekst: str(d.bron), size: 10, min: 8, kleur: K.grijs, italic: true, wat: "De bron" });
         break;
       case "stelling":
-        T({ x: 0.5, y: 0.4, w: 1.5, h: 1.3, tekst: "“", size: 96, face: "kop", kleur: K.accent });
         T({ x: 0.9, y: 1.4, w: 8.2, h: 2.6, tekst: str(d.tekst || d.titel), size: 30, min: 20, bold: true, face: "kop", kleur: K.licht, valign: "middle", wat: "De stelling" });
         if (d.door) T({ x: 0.9, y: 4.2, w: 8.2, h: 0.45, tekst: str(d.door), size: 14, min: 11, kleur: K.accent2 });
         break;
@@ -153,11 +147,10 @@ function maakIndeling(spec, info) {
         T({ x: 0.5, y: 1.35, w: 9, h: 3.6, runs: lijst(d.punten || [d.tekst]), ruimte: 8, size: 18, min: 13, valign: "top", wat: "De tekst" });
     }
     if (d.punten && d.punten.length > 5) waarschuwingen.push({ dia: nr, tekst: d.punten.length + " punten; maximaal 5 leest prettig." });
+    var meta = /\b(opdracht|assignment|week \d|lesweek|docent|teacher|kern:|key point|key takeaways?|vraag aan de klas|question for the class)\b/i;
+    var zichtbaar = [d.titel, d.ondertitel, d.kern, d.tekst, d.door, d.label].concat(d.punten || [], (d.kaarten || []).map(function (k) { return k.kop + " " + k.tekst })).filter(Boolean).join(" ");
+    if (meta.test(zichtbaar)) waarschuwingen.push({ dia: nr, tekst: "Er staat tekst op die een student niet zelf zou zetten (\"" + zichtbaar.match(meta)[0] + "\"). Haal die weg." });
     if (!str(d.notities).trim() && ["bronnen", "afsluiting"].indexOf(d.type) < 0) waarschuwingen.push({ dia: nr, tekst: "Geen spreektekst in de notities." });
-    if (!donker) {
-      T({ x: 0.5, y: 5.2, w: 7, h: 0.3, tekst: voet, size: 10, kleur: K.grijs });
-      T({ x: 8.7, y: 5.2, w: 0.8, h: 0.3, tekst: String(nr), size: 10, kleur: K.grijs, align: "right" });
-    }
     return { type: d.type, donker: donker, items: items, notities: str(d.notities) };
   });
 
@@ -167,11 +160,12 @@ function maakIndeling(spec, info) {
   return { K: K, titel: spec.titel || "", taal: spec.taal || "nl", slides: slides, waarschuwingen: waarschuwingen };
 }
 
-function indelingNaarPptx(ind, PptxGenJS, info) {
-  info = info || {};
+// opties.notities: true zet de spreektekst in de sprekersnotities (standaard uit: die kan een docent zien)
+function indelingNaarPptx(ind, PptxGenJS, info, opties) {
+  info = info || {}; opties = opties || {};
   var K = ind.K, pres = new PptxGenJS();
   pres.layout = "LAYOUT_16x9";
-  pres.title = ind.titel; pres.author = info.auteur || "Jort Eeltink";
+  pres.title = ind.titel; pres.subject = ind.titel; pres.author = info.auteur || "Jort Eeltink";
   pres.theme = { headFontFace: DECK_FONT.kop, bodyFontFace: DECK_FONT.body };
   ind.slides.forEach(function (s) {
     var slide = pres.addSlide();
@@ -187,7 +181,7 @@ function indelingNaarPptx(ind, PptxGenJS, info) {
         slide.addText(inhoud, opt);
       }
     });
-    if (s.notities) slide.addNotes(s.notities);
+    if (opties.notities && s.notities) slide.addNotes(s.notities);
   });
   return pres;
 }

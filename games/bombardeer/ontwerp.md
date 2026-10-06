@@ -173,3 +173,17 @@ Running gag: **🥟 De bom is een kroket** die opzwelt en iets geks bevat.
 8. Eindscherm-teksten en bot-verfijning. Test met `npm run playtest -- bombardeer` en een 8-bots-run (`?autohost=1&bots=7`).
 
 Als er tijd tekortkomt: laat kip of banaan vallen, nooit de kern, het spook of de slowmotion-BOEM.
+
+## Wijzigingen na test 1
+
+Na het testrapport en de speeltest (cijfer 7). Getallen staan als constanten bovenin `game.js`.
+
+- **VEILIG na doorgeven (geen pingpong):** wie de kroket net doorgaf, is 2 s `safe` en kan hem niet terugkrijgen. Dat geldt voor tikken, de spook-gooi en de kip. De nieuwe houder kan 0,8 s niet tikken (`lock`). Boven een veilige speler staat een "VEILIG"-bordje. Terugtikken binnen 1,3 s gebeurt in de simulatie niet meer (was 51–73%).
+- **Kip eerlijk:** de kip komt bij ongeveer de helft van de lonten van ≥ 8 s, op een willekeurig moment tussen 45% en 80% (`S.ckAt`, vastgelegd bij de start van de lont). Hij fladdert eerst 0,6 s op de plek en rent dan (320 u/s) naar zijn doelwit `S.chicken.target`. Dat doelwit staat in de state, dus de bovenbalk zegt "🐔 De kip zoekt NAAM!" (of "DE KIP WIL JOU!"). Alleen bij **echte aanraking** krijgt iemand de kroket: het doelwit, of een pechvogel die in de weg staat. Ontloop je hem 3,8 s, dan geeft hij het op ("Pff, ik geef het op 🐔") en gaat de kroket **terug naar de oude houder** (event `kipop`). Na de kip is er altijd nog minstens 2,5 s lont over.
+- **Lont in de finale:** de lontduur hangt af van het aantal spelers **bij de start**: ≤ 4 spelers 18 s, anders 14 s, en elke BOEM eraf 1,2 s. In de finale wordt de lont dus korter, niet langer. (Bij 4 spelers blijft de ronde zo ±64 s.)
+- **Spoken blijven meedoen:** de spookknop doet eerst de **gooi** (1× per ronde). Daarna, of zolang gooien niet kan, legt hij elke 8 s een **spook-banaan** waar het spook zweeft (max 1 per spook, een nieuwe vervangt de oude). Elke banaan "valt" eerst 0,8 s en is dan pas glad. De gooi werkt **niet** als de lont onder 1,5 s is of tijdens TSSSS ("Te laat om te gooien! 👻"). De touch-knop heet voor een spook "👻 Gooi", "🍌 Leg" of "🍌 5" (aftellen) via `party.setButtonLabel`, en weer "Sprint" als je meedoet.
+- **Wegvallen:** een speler die wegvalt, wordt spook (`away: 1`) in plaats van verwijderd. Had hij de kroket, dan krijgt een willekeurige levende speler een **nieuwe kroket met een volle lont** (ook in de TSSSS-seconde, dus niemand ontploft daardoor). Komt hij terug, dan zweeft hij als spook rond en ziet hij 7 s "Je was even weg: je bent nu een spook 👻". Weggaan tijdens de eindpauze verandert de winnaar niet.
+- **Scores:** iedereen krijgt het aantal **seconden dat hij overleefde**, de winnaar de hele rondeduur. In `text` staat "⏱️ Getal = seconden overleefd."
+- **Bovenrand:** spelers komen niet hoger dan y = 255. Tussen de bovenbalk en de vloer zit nu een rand met keukentegels. Daar zweeft de kroket overheen, en daar staat je eigen status (spook-hint, "Even opscharrelen"). Kroket, hartjes en het VEILIG-bordje blijven altijd onder de bovenbalk zichtbaar.
+- **Bots:** vluchten slimmer: ze kiezen uit 16 richtingen de beste en lopen niet meer vast in hoeken. Spook-bots zweven naar een slachtoffer, gooien als de lont tussen 1,5 en 4 s is en leggen bananen bij levende spelers.
+- **Nieuwe events:** `kipop { kx, ky, x, y, id, back, target }`, `spookbanaan { x, y, id }`, `weg { x, y, id }`. `kip` heeft nu `{ x, y, target, from, again }`, `kipgrab` heeft ook `target` (true als het doelwit gepakt is) en `slip` heeft ook `by` (het spook van de banaan).

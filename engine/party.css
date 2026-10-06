@@ -165,8 +165,9 @@ html, body {
 .pv-dots::after { content: ''; animation: dots 1.2s steps(4) infinite; }
 @keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
 
-.pv-over { padding-top: 6vh; }
-.pv-result { text-align: center; font-size: clamp(34px, 9vw, 54px); animation: pop2 .5s ease-out; }
+.pv-over { padding-top: min(6vh, 40px); }
+.pv-result { text-align: center; font-size: clamp(26px, min(9vw, 8vh), 54px); animation: pop2 .5s ease-out; }
+.pv-over > .pv-row, .pv-over > .pv-wait { position: sticky; bottom: 0; padding: 10px 0 4px; background: linear-gradient(transparent, rgba(13,12,29,.95) 30%); }
 @keyframes pop2 { from { transform: scale(.5); opacity: 0; } }
 .pv-ranking { display: flex; flex-direction: column; gap: 8px; }
 .pv-rank.win { background: linear-gradient(90deg, rgba(255,190,11,.3), var(--panel)); }

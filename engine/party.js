@@ -771,6 +771,11 @@ class Party {
       h('p', { class: 'pv-hint' }, 'Eén iemand start een spel. De rest scant de QR-code of typt de code in.'));
   }
 
+  showMenu() {
+    this.phase = 'menu';
+    this.render();
+  }
+
   showJoin(code) {
     this.room = code;
     this.phase = 'join';

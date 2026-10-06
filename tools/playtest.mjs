@@ -80,11 +80,27 @@ try {
   const room = await party(host, () => window.__party.room);
   if (!room) throw new Error('geen kamer');
 
-  // 2. spelers doen mee; speler 2 bestuurt met echte touch/muis, de rest met autopilot
+  // 2. spelers doen mee. Speler 2 doet het zoals een echte vriend: via het menu de code
+  //    intypen en op Meedoen tikken, en daarna besturen met touch. De rest gebruikt autopilot.
   for (let i = 1; i < PLAYERS; i++) {
     const manual = i === 1;
-    const info = await openDevice(i, `${base}&room=${room}&autojoin=1&name=Speler${i + 1}${manual ? '' : '&autopilot=1'}`);
-    info.manual = manual;
+    if (manual) {
+      const info = await openDevice(i, base);
+      info.manual = true;
+      try {
+        await info.page.waitForSelector('.pv-code-input', { timeout: 10000 });
+        await info.page.fill('.pv-input:not(.pv-code-input)', `Speler${i + 1}`);
+        await info.page.fill('.pv-code-input', room);
+        await info.page.getByRole('button', { name: 'Meedoen' }).tap();
+      } catch (e) { problem(`Meedoen via het menu lukt niet op ${info.name}: ${e.message.split('\n')[0]}`); }
+    } else if (i === 2) {
+      // speler 3 scant de QR-code: opent de link met ?room= en tikt op Meedoen!
+      const info = await openDevice(i, `${base}&room=${room}&name=Speler${i + 1}&autopilot=1`);
+      await info.page.getByRole('button', { name: /Meedoen/ }).tap({ timeout: 10000 })
+        .catch((e) => problem(`Meedoen via de QR-link lukt niet op ${info.name}: ${e.message.split('\n')[0]}`));
+    } else {
+      await openDevice(i, `${base}&room=${room}&autojoin=1&name=Speler${i + 1}&autopilot=1`);
+    }
   }
   const want = PLAYERS + BOTS;
   await host.page.waitForFunction((n) => window.__party.players.filter((p) => p.connected).length >= n, want, { timeout: 25000 })
@@ -93,8 +109,9 @@ try {
   await shot(host, '1-lobby');
   await shot(pages[1], '1-lobby');
 
-  // 3. starten
-  await party(host, () => window.__party.start());
+  // 3. starten met de echte Start-knop van de host
+  await host.page.locator('.party-overlay .pv-primary').click({ timeout: 5000 }).catch(() => problem('De Start-knop van de host werkt niet.'));
+  await host.page.waitForFunction(() => window.__party.phase === 'playing', null, { timeout: 5000 }).catch(() => problem('Na Start begint het spel niet.'));
   const t0 = Date.now();
   for (const info of pages) info.statesAtStart = (await party(info, () => window.__party.stats.statesIn)) || 0;
   let midShot = false, leftEarly = false;

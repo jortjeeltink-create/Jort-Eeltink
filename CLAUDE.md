@@ -32,6 +32,8 @@ prompt → gekke-bedenker → ontwerper → bouwer → kunstenaar → tester ∥
 
 Geef de agents altijd de mapnaam van de game en wat er van ze verwacht wordt. Ze zien dit gesprek niet. Vertel Jort tussendoor kort waar het team mee bezig is (één regel per stap).
 
+**Wacht op elke agent.** Start agents op de voorgrond (niet op de achtergrond): elke stap heeft het resultaat van de vorige nodig. Tester en speeltester start je tegelijk, in één bericht, en je wacht op allebei.
+
 ## Klaar is pas klaar als
 
 - de tester ✅ geeft: speltests met 2, 4 en 8 spelers slagen, zonder fouten, op telefoon en laptop;

@@ -12,7 +12,7 @@ Voor school
 - **Controleur**: checkt alle eisen. Bij fouten gaat het werk terug naar de Schrijver.
 - **PowerPoint**: maakt de dia's met spreektekst.
 
-Je krijgt een `.pptx`, de uitgewerkte opdracht, wat je moet zeggen en wat je moet weten.
+Je krijgt alles in Word en PowerPoint: de opdracht (Word, met voorblad), de presentatie (PowerPoint), wat je moet zeggen (Word) en wat je moet weten (Word).
 De app draait als Claude-artifact op je eigen Claude-account. Pas je `docs/studieoverzicht.md` aan? Draai dan `python3 app/bouw.py`.
 
 ## AI-agents voor schoolwerk
@@ -28,9 +28,9 @@ In `.claude/agents/` staan agents die je in Claude Code kunt gebruiken, voor all
 
 **Opdracht laten maken:** typ `/maak-opdracht MABU week 2` of gewoon "maak MABU week 2 voor me". Je krijgt een map in `werk/` met:
 - `presentatie.pptx`, met de spreektekst in de notities;
-- `opdracht.md`, de uitgewerkte tekst;
-- `spreektekst.md`, wat je per dia zegt;
-- `spiekbrief.md`, wat je moet weten, plus vragen en antwoorden.
+- `opdracht.docx`, de uitgewerkte tekst met voorblad;
+- `spreektekst.docx`, wat je per dia zegt;
+- `spiekbrief.docx`, wat je moet weten, plus vragen en antwoorden.
 
 **Andere agents:** vraag het gewoon in Claude Code, bijvoorbeeld:
 - "Laat de maker een samenvatting maken van hoofdstuk 3 geschiedenis"

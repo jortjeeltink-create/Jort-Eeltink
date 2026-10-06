@@ -21,6 +21,8 @@
   },
   "homepage": "https://github.com/jortjeeltink-create/Jort-Eeltink#readme",
   "dependencies": {
+    "docx": "^8.5.0",
+    "marked": "^12.0.2",
     "pptxgenjs": "^4.0.1"
   }
 }

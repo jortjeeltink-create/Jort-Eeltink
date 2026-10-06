@@ -4,7 +4,12 @@ Opleiding: Tio, schooljaar 2026–2027. Specialisatie: Digital Business & Genera
 Het volledige overzicht van vakken en opdrachten (week 1 t/m 11) staat in `docs/studieoverzicht.md`. Lees dat eerst.
 
 ## Opdracht maken
-Zegt Jort "maak opdracht X"? Volg dan `.claude/skills/maak-opdracht/SKILL.md`. Hij krijgt het eindproduct: een PowerPoint, de uitgewerkte tekst, een spreektekst per dia en een spiekbrief. De PowerPoint bouw je met `node tools/maak-deck.js <slides.json>`. Draai eerst `npm install`.
+Zegt Jort "maak opdracht X"? Volg dan `.claude/skills/maak-opdracht/SKILL.md`. Hij krijgt het eindproduct: een PowerPoint, de uitgewerkte tekst, een spreektekst per dia en een spiekbrief.
+Jort gebruikt op school alleen Microsoft: lever alles op als **Word (.docx)** en **PowerPoint (.pptx)**, nooit als losse .md-bestanden.
+- PowerPoint: `node tools/maak-deck.js <slides.json>`
+- Word: `node tools/md-naar-word.js <in.md> <uit.docx> [--voorblad "Titel|Ondertitel"]`
+
+Draai eerst `npm install`.
 
 ## Regels bij het maken van opdrachten
 - Schrijf in duidelijk Nederlands, met korte zinnen. Gebruik geen moeilijke of overdreven AI-achtige woorden, zoals "cruciaal", "naadloos", "in het huidige digitale landschap" of "een wereld van mogelijkheden".

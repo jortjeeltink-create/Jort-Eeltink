@@ -1,3 +1,4 @@
 [
-  { "id": "botsbal", "title": "Botsbal", "emoji": "🎱", "subtitle": "Duw elkaar van het ijs!", "players": "2-8", "made": "2026-10-06" }
+  { "id": "botsbal", "title": "Botsbal", "emoji": "🎱", "subtitle": "Duw elkaar van het ijs!", "players": "2-8", "made": "2026-10-06" },
+  { "id": "bombardeer", "title": "Bombardeer", "emoji": "🥟", "subtitle": "Geef de kroket door!", "players": "2-8", "made": "2026-10-06" }
 ]

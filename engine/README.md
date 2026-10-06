@@ -109,6 +109,7 @@ Knoppen 1–4 = spatie/J/Enter, K/Shift, L, I. De cijfers 1–4 werken ook. Een 
 | `party.send(action)` | overal | stuur een actie naar de host (komt in `onAction`) |
 | `party.smooth(key, x, y)` | render | vloeiende positie op niet-host-apparaten. Gebruik dit voor alles wat beweegt. |
 | `party.toWorld(clientX, clientY)` | overal | schermpunt omrekenen naar wereldcoördinaten (voor tikken) |
+| `party.setButtonLabel(i, tekst)` | render | tekst van touch-knop `i` op dít apparaat veranderen, bijv. `'👻 Gooi'` als je een spook bent |
 | `party.ui` | overal | een `<div>` precies over de spelwereld, voor HTML-knoppen of tekst |
 | `party.canvas` | overal | het canvas-element |
 | `party.world` | overal | `{ w, h }` |

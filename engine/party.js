@@ -203,6 +203,7 @@ class Party {
       send: (action) => self.sendAction(action),
       smooth: (key, x, y, k) => self.smooth(key, x, y, k),
       toWorld: (cx, cy) => ({ x: (cx - self.ox) / self.scale, y: (cy - self.oy) / self.scale }),
+      setButtonLabel: (i, text) => self.controls.setLabel(i, text),
       juice: {
         sfx: juice.sfx, vibrate: juice.vibrate, shake: juice.shake, flash: juice.flash,
         particles: juice.particles, floatText: juice.floatText,

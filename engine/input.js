@@ -119,6 +119,7 @@ export class Controls {
         b.className = 'pc-btn';
         b.dataset.i = i;
         b.textContent = label;
+        (this.btnEls ||= [])[i] = b;
         const down = (e) => {
           e.preventDefault();
           if (!this.touchB[i]) this.k[i]++;
@@ -166,6 +167,12 @@ export class Controls {
     if (m > 1) { x /= m; y /= m; }
     const b = this.keyB.map((v, i) => v || this.touchB[i] || this.padB[i]);
     return { x, y, b, k: this.k.slice() };
+  }
+
+  /** Tekst van een touch-knop veranderen, bijv. setLabel(0, '👻 Gooi'). */
+  setLabel(i, text) {
+    const b = this.btnEls?.[i];
+    if (b && b.textContent !== text) b.textContent = text;
   }
 
   /** Touch-besturing tonen of verbergen (alleen tijdens het spelen). */

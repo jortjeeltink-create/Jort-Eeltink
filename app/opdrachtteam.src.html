@@ -65,6 +65,7 @@ details .field + .field { margin-top: 12px }
 .team-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap }
 .team { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px }
 @media (max-width: 480px) { .team { grid-template-columns: minmax(0, 1fr) } }
+.team .agent:last-child:nth-child(odd) { grid-column: 1 / -1 }
 .agent { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 4px 12px; align-items: start; transition: border-color .2s, background .2s }
 .agent .mono { grid-row: span 3; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font: 700 0.9rem/1 var(--f-display); background: var(--tint); color: var(--accent) }
 .agent h3 { font-size: 1rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap }
@@ -104,8 +105,8 @@ details .field + .field { margin-top: 12px }
 .check { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px }
 .check li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px }
 .check .ok { color: var(--ok); font-weight: 700 } .check .nok { color: var(--err); font-weight: 700 }
-.slides { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px }
-.dia { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: grid; min-width: 0 }
+.slides { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 14px }
+.dia { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: grid; min-width: 0; margin: 0 }
 .dia .vlak { aspect-ratio: 16 / 9; max-width: 100%; padding: 12px; display: grid; align-content: start; gap: 6px; background: var(--surface) }
 .dia .vlak.donker { background: var(--ink); color: var(--bg) }
 .dia .vlak b { font: 700 0.95rem/1.2 var(--f-display) }
@@ -119,7 +120,7 @@ details .field + .field { margin-top: 12px }
     <div>
       <p class="label">Tio · Digital Business &amp; Generative AI</p>
       <h1>Opdrachtteam</h1>
-      <p class="lead">Kies of plak een opdracht. Acht AI-collega's werken hem samen uit. Je krijgt een Word-document, een PowerPoint, wat je moet zeggen en wat je moet weten.</p>
+      <p class="lead">Kies of plak een opdracht. Negen AI-collega's werken hem samen uit. Je krijgt een Word-document, een PowerPoint, wat je moet zeggen en wat je moet weten.</p>
     </div>
   </header>
 
@@ -135,6 +136,14 @@ details .field + .field { margin-top: 12px }
           <span>Opdracht</span>
           <textarea id="opdracht" spellcheck="true"></textarea>
           <small>Komt uit je studieoverzicht. Pas aan of plak de opdracht van Blackboard.</small>
+        </label>
+        <label class="field">
+          <span>Taal van de opdracht</span>
+          <select id="taal">
+            <option value="auto">Automatisch (het team kiest op basis van vak en opdracht)</option>
+            <option value="nl">Nederlands</option>
+            <option value="en">Engels: alles in het Engels, ook de dia's en spreektekst</option>
+          </select>
         </label>
         <label class="field">
           <span>Wensen</span>
@@ -171,7 +180,7 @@ details .field + .field { margin-top: 12px }
         <p class="label" id="ronde">Klaar om te starten</p>
       </div>
       <div class="team" id="team"></div>
-      <p class="flow">Denker → Creatief + Rekenaar → Schrijver → Taal → Jort-check → Controleur (bij fouten nog een ronde) → PowerPoint → Denker maakt spiekbrief</p>
+      <p class="flow">Denker → Creatief + Rekenaar → Schrijver → Taal → Jort-check → Controleur (bij fouten nog een ronde) → PowerPoint → Dia-check (bij fouten opnieuw) → Denker maakt spiekbrief</p>
     </section>
   </div>
 
@@ -203,6 +212,9 @@ details .field + .field { margin-top: 12px }
 /*MDNAARWORD*/
 </script>
 <script>
+/*DECKLAYOUT*/
+</script>
+<script>
 const OVERZICHT = /*OVERZICHT*/null;
 
 const AGENTS = [
@@ -210,18 +222,28 @@ const AGENTS = [
   { id: "creatief", naam: "Creatief", mono: "Cr", rol: "Bedenkt een sterke opening, ideeën en beelden" },
   { id: "rekenaar", naam: "Rekenaar", mono: "Re", rol: "Doet het rekenwerk en checkt cijfers" },
   { id: "schrijver", naam: "Schrijver", mono: "Sc", rol: "Schrijft de opdracht helemaal uit" },
-  { id: "taal", naam: "Taal", mono: "Ta", rol: "Verbetert spelling, zinnen en woordkeuze" },
+  { id: "taal", naam: "Taal", mono: "Ta", rol: "Verbetert spelling en zinnen en checkt of alles in de goede taal staat" },
   { id: "stijl", naam: "Jort-check", mono: "Jo", rol: "Checkt of het klinkt alsof jij het schreef" },
   { id: "controleur", naam: "Controleur", mono: "Co", rol: "Checkt alle eisen, woorden en bronnen" },
   { id: "ppt", naam: "PowerPoint", mono: "PP", rol: "Maakt de dia's en de spreektekst" },
+  { id: "diacheck", naam: "Dia-check", mono: "Dc", rol: "Meet en checkt elke dia: past alles, ziet het er goed uit, klopt de taal" },
 ];
 
-const REGELS = `Regels voor alles wat je schrijft:
+const REGELS_NL = `Regels voor alles wat je schrijft:
 - Duidelijk Nederlands met korte zinnen. Geen moeilijke of AI-achtige woorden of zinnen, zoals: cruciaal, essentieel, naadloos, robuust, baanbrekend, "in het huidige digitale landschap", "een wereld van mogelijkheden", "speelt een sleutelrol", "het is belangrijk om te benadrukken", "kortom". Geen gedachtestreepjes als stijlmiddel.
 - Verzin geen bronnen, cijfers, citaten, bedrijfsbezoeken of persoonlijke ervaringen. Je kunt niet op internet zoeken.
 - Gebruik alleen bronnen uit het lesmateriaal van Jort. Is er voor een bewering een bron nodig die er niet is, zet dan [BRON ZOEKEN: waarover].
 - Waar iets van Jort zelf nodig is (eigen ervaring, foto, bezoek, mening die alleen hij kan geven), zet [VUL IN: wat er moet komen].
 - Bronnen in APA 7.`;
+const REGELS_EN = `Regels voor alles wat je schrijft:
+- Schrijf ALLES in het Engels: de tekst, kopjes, dia's, notities en bronvermelding. Geen enkel Nederlands woord, ook niet in kopjes of labels.
+- Duidelijk, eenvoudig Engels (niveau van een eerstejaars hbo-student, B2/C1) met korte zinnen. Geen AI-achtige woorden of zinnen, zoals: delve, crucial, pivotal, seamless, robust, leverage, tapestry, landscape, realm, "in today's digital world", "it is important to note", "in conclusion", "game-changer". Geen gedachtestreepjes als stijlmiddel.
+- Verzin geen bronnen, cijfers, citaten, bedrijfsbezoeken of persoonlijke ervaringen. Je kunt niet op internet zoeken.
+- Gebruik alleen bronnen uit het lesmateriaal van Jort. Is er voor een bewering een bron nodig die er niet is, zet dan [BRON ZOEKEN: waarover].
+- Waar iets van Jort zelf nodig is (eigen ervaring, foto, bezoek, mening die alleen hij kan geven), zet [VUL IN: wat er moet komen].
+- Bronnen in APA 7 (Engelse versie: "Retrieved from" is niet nodig, wel auteur, jaar, titel, URL).`;
+let REGELS = REGELS_NL;
+const TAALNAAM = { nl: "Nederlands", en: "Engels" };
 
 const $ = (s) => document.querySelector(s);
 const opslaan = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)) } catch (e) {} };
@@ -231,6 +253,7 @@ const laden = (k) => { try { return JSON.parse(localStorage.getItem(k)) } catch 
 const vakSel = $("#vak"), weekSel = $("#week");
 const kortVak = (n) => n.replace(/\s*\(.*\)/, "").replace(/\b(\w)(\w*)/g, (m, a, b) => a + b.toLowerCase());
 OVERZICHT.vakken.forEach((v, i) => vakSel.add(new Option(kortVak(v.naam) + (v.naam.match(/\((.*)\)/) ? ` (${v.naam.match(/\((.*)\)/)[1]})` : ""), i)));
+vakSel.add(new Option("English (Engels)", "en"));
 vakSel.add(new Option("Ander vak of eigen opdracht", "x"));
 function vulWeken() {
   weekSel.innerHTML = "";
@@ -244,7 +267,7 @@ function vulOpdracht() {
   const w = v && v.weken[weekSel.value];
   $("#opdracht").value = w ? w.tekst.replace(/\n?PERSOONLIJKE VOORTGANG[\s\S]*/, "").trim() : "";
 }
-vakSel.onchange = () => { vulWeken(); vulOpdracht() };
+vakSel.onchange = () => { vulWeken(); vulOpdracht(); if (vakSel.value === "en") $("#taal").value = "en" };
 weekSel.onchange = vulOpdracht;
 vakSel.value = "0"; vulWeken(); weekSel.value = "1"; vulOpdracht();
 const stijlOud = laden("ot-stijl"); if (stijlOud) $("#stijl").value = stijlOud;
@@ -316,7 +339,9 @@ let R = laden("ot-laatste") || null;
 $("#form").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   if (!sample) return;
-  const v = OVERZICHT.vakken[vakSel.value], w = v && v.weken[weekSel.value];
+  const v = vakSel.value === "en" ? { naam: "ENGLISH", intro: "Engelse les. Er zijn geen volledige lesweek-PowerPoints gevonden; Jort koos eerder bol.com voor een presentatie.", weken: [] } : OVERZICHT.vakken[vakSel.value];
+  const w = v && v.weken[weekSel.value];
+  const taalKeuze = $("#taal").value;
   const ctx = `Over de student: Jort, eerstejaars Tio (hbo), schooljaar 2026-2027, specialisatie Digital Business & Generative AI.
 Wat Jort eerder koos of deed: ${OVERZICHT.voortgang}
 
@@ -339,6 +364,7 @@ ${$("#materiaal").value.trim().slice(0, 60000) || "(geen aangeleverd)"}`;
   AGENTS.forEach((a) => zet(a.id, "wacht", ""));
   const ronde = $("#ronde");
   const r = { vak: v ? kortVak(v.naam) : "Opdracht", week: w ? w.week : null, titel: w ? w.titel : "Opdracht" };
+  REGELS = taalKeuze === "en" ? REGELS_EN : REGELS_NL;
   try {
     ronde.textContent = "Plan maken";
     const plan = await vraag("denker", `Je bent de Denker in een team van AI-collega's dat een schoolopdracht voor Jort maakt. Lees de opdracht goed en maak het plan.
@@ -354,8 +380,11 @@ Antwoord alleen met JSON in deze vorm:
  "aanpak": "hoe het team dit het best aanpakt",
  "rekenwerk": true of false,
  "rekenvragen": ["wat de Rekenaar moet uitrekenen"],
- "zelfDoen": ["wat Jort echt zelf moet doen, zoals foto's maken, iets opnemen, een bezoek of uploaden"]}`, { json: true, images: beelden, tier: "complex", klaar: "Plan klaar" });
-    zet("denker", "klaar", plan.samenvatting || "Plan klaar");
+ "zelfDoen": ["wat Jort echt zelf moet doen, zoals foto's maken, iets opnemen, een bezoek of uploaden"],
+ "taal": "nl" of "en": de taal waarin het product en de presentatie moeten. Engels bij een Engelse les of als de opdracht dat vraagt${taalKeuze !== "auto" ? `. Jort heeft gekozen voor: ${taalKeuze}` : ""}}`, { json: true, images: beelden, tier: "complex", klaar: "Plan klaar" });
+    const taal = taalKeuze !== "auto" ? taalKeuze : (plan.taal === "en" ? "en" : "nl");
+    REGELS = taal === "en" ? REGELS_EN : REGELS_NL; r.taal = taal;
+    zet("denker", "klaar", `${plan.samenvatting || "Plan klaar"} (taal: ${TAALNAAM[taal]})`);
 
     ronde.textContent = "Ideeën en rekenwerk";
     const planTekst = JSON.stringify(plan, null, 1);
@@ -413,7 +442,8 @@ Schrijf alleen het eindproduct in Markdown: een titel met #, kopjes met ##, en o
 
     ronde.textContent = "Taal verbeteren";
     const taalUit = await vraag("taal", `Je bent de taalexpert in een team dat een schoolopdracht voor Jort maakt. Verbeter de tekst hieronder.
-Let op spelling, grammatica, d/t, interpunctie, lange zinnen (maak ze korter) en AI-achtige woorden.
+De tekst moet helemaal in het ${TAALNAAM[taal]} zijn. Vertaal alles wat in een andere taal staat (ook kopjes en labels), behalve namen, titels van bronnen en vaste vaktermen.
+Let op spelling, grammatica${taal === "nl" ? ", d/t" : ""}, interpunctie, lange zinnen (maak ze korter) en AI-achtige woorden.
 ${REGELS}
 Verander de inhoud, de bronnen en de [VUL IN]- en [BRON ZOEKEN]-plekken niet. Houd de Markdown-opmaak.
 
@@ -425,13 +455,13 @@ Antwoord precies in deze vorm:
 de verbeterde tekst in Markdown
 </tekst>
 <wijzigingen>
-- de belangrijkste verbeteringen, maximaal 8, kort
+- de belangrijkste verbeteringen, maximaal 8, kort, in het Nederlands
 </wijzigingen>`, { klaar: "Taal verbeterd" });
     tekst = deel(taalUit, "tekst") || tekst;
     r.taal = deel(taalUit, "wijzigingen");
 
     ronde.textContent = "Jort-check";
-    const stijlUit = await vraag("stijl", `Je bent de Jort-check in een team dat een schoolopdracht voor Jort maakt. Jij checkt of de tekst klinkt alsof Jort hem zelf heeft geschreven: een eerstejaars hbo-student die duidelijk, eenvoudig en een beetje persoonlijk schrijft, zonder dure woorden.
+    const stijlUit = await vraag("stijl", `Je bent de Jort-check in een team dat een schoolopdracht voor Jort maakt. Jij checkt of de tekst klinkt alsof Jort hem zelf heeft geschreven: een eerstejaars hbo-student die duidelijk, eenvoudig en een beetje persoonlijk schrijft, zonder dure woorden.${taal === "en" ? " De tekst is in het Engels: Jort is een Nederlandse student met goed maar eenvoudig Engels (B2). De tekst blijft helemaal Engels." : ""}
 ${stijl ? "Hieronder staat een tekst die Jort zelf schreef. Neem zijn woordkeus, zinslengte en toon over:\n<<<\n" + stijl + "\n>>>" : "Er is geen voorbeeldtekst van Jort. Ga uit van een gewone eerstejaars hbo-student."}
 
 Pas alleen woordkeus, zinsbouw en toon aan. Verander de inhoud, de feiten, de bronnen en de [VUL IN]- en [BRON ZOEKEN]-plekken niet. Houd het woordaantal ongeveer gelijk en houd de Markdown-opmaak.
@@ -444,7 +474,7 @@ Antwoord precies in deze vorm:
 <score>cijfer van 1 tot 10: hoe goed de tekst NA jouw aanpassing bij Jort past</score>
 <voor>cijfer van 1 tot 10: hoe goed de tekst VOOR jouw aanpassing bij Jort paste</voor>
 <uitleg>
-- wat je hebt aangepast en wat Jort zelf nog kan doen om het meer van hem te maken, maximaal 6 punten
+- wat je hebt aangepast en wat Jort zelf nog kan doen om het meer van hem te maken, maximaal 6 punten, in het Nederlands
 </uitleg>
 <tekst>
 de aangepaste tekst in Markdown
@@ -463,8 +493,9 @@ Woordlimiet: ${plan.woordlimiet || "geen"}. Getelde woorden (zonder bronnenlijst
 TEKST:
 ${t}
 
-Check ook: kloppen de feiten, staan er verzonnen of onvolledige bronnen in, staat elke bron in de tekst ook in de lijst, en zijn er nog AI-achtige woorden?
+Check ook: staat ALLES in het ${TAALNAAM[taal]} (ook kopjes), kloppen de feiten, staan er verzonnen of onvolledige bronnen in, staat elke bron in de tekst ook in de lijst, en zijn er nog AI-achtige woorden?
 Antwoord alleen met JSON:
+Schrijf je toelichting in het Nederlands.
 {"oordeel": "goed" of "verbeteren", "eisen": [{"eis": "...", "ok": true, "toelichting": "kort"}], "bronnen": "korte check van de bronnen", "verbeterpunten": ["wat de Schrijver precies moet aanpassen; leeg als het goed is"]}`, { json: true, klaar: n === 1 ? "Gecheckt" : "Eindcheck klaar" });
 
     ronde.textContent = "Controle";
@@ -488,27 +519,78 @@ ${fouten.map((f) => "- " + f).join("\n")}`), { klaar: "Verbeterde versie klaar" 
 
     ronde.textContent = "PowerPoint maken";
     const minuten = plan.presentatieMinuten || 5;
-    const deck = await vraag("ppt", `Je bent de PowerPoint-maker in een team dat een schoolopdracht voor Jort maakt. Maak een presentatie van ongeveer ${minuten} minuten over de uitgewerkte opdracht hieronder, plus precies wat Jort per dia zegt.
+    const SLIDETYPES = `Slidetypes (veld "type") en hoeveel tekst erop past:
+titel {titel (max 8 woorden), ondertitel (max 12)} · punten {titel, punten:[max 5, elk max 12 woorden], kern (max 12 woorden)} · kaarten {titel, kaarten:[{letter?, kop (max 3 woorden), tekst (max 18 woorden)}] 2-6 kaarten} · tijdlijn {titel, stappen:[{jaar, tekst (max 8 woorden)}] 3-6} · matrix {titel, assen?:[x-as, y-as], vakken:[{kop, punten:[max 3, elk max 6 woorden]}] precies 4} · getal {titel, getal (max 6 tekens, bijv. "75%" of "2,1 mld"), label (max 8 woorden), tekst (max 35 woorden), bron?} · stelling {tekst (max 15 woorden), door?} · afbeelding {titel, afbeelding: "beschrijving van de foto die Jort moet invoegen", tekst? (max 30 woorden)} · bronnen {bronnen:[..]} · afsluiting {titel, punten?}
+Titels: max 7 woorden. Elke dia krijgt ook "notities".`;
+    let deck = await vraag("ppt", `Je bent de PowerPoint-maker in een team dat een schoolopdracht voor Jort maakt. Maak een presentatie van ongeveer ${minuten} minuten over de uitgewerkte opdracht hieronder, plus precies wat Jort per dia zegt.
 ${ctx}
 
 UITGEWERKTE OPDRACHT:
 ${tekst}
 
 Regels voor de dia's:
-- Ongeveer 1 dia per minuut, plus titel, bronnen en afsluiting. Wissel de types af.
-- Weinig tekst op een dia: maximaal 5 korte punten, een kaart heeft maximaal 20 woorden.
+- ALLES in het ${TAALNAAM[taal]}: titels, punten, kaarten, labels, notities. Ook de titel van de bronnendia en de afsluiting${taal === "en" ? ' (bijv. "References", "Questions?")' : ""}.
+- Ongeveer 1 dia per minuut, plus titel, bronnen en afsluiting. Wissel de types af: nooit drie keer hetzelfde type achter elkaar. Gebruik waar het kan kaarten, matrix, tijdlijn, getal of stelling in plaats van alleen punten.
+- Weinig tekst op een dia en houd je aan de maxima hieronder; het verhaal staat in de notities.
 - In "notities" staat de spreektekst: wat Jort letterlijk zegt, in spreektaal, in de ik-vorm. Samen ongeveer ${minuten * 130} woorden.
 - Zet geen feiten of bronnen in de dia's die niet in de uitgewerkte opdracht staan. [VUL IN]-plekken mag je overnemen.
 ${REGELS}
 
-Slidetypes (veld "type"):
-titel {titel, ondertitel} · punten {titel, punten:[..], kern} · kaarten {titel, kaarten:[{letter?, kop, tekst}]} (2-6 kaarten) · tijdlijn {titel, stappen:[{jaar, tekst}]} (3-6) · matrix {titel, assen?:[x-as, y-as], vakken:[{kop, punten:[..]}] precies 4} · getal {titel, getal, label, tekst, bron?} · stelling {tekst, door?} · afbeelding {titel, afbeelding: "beschrijving van de foto die Jort moet invoegen", tekst?} · bronnen {bronnen:[..]} · afsluiting {titel, punten?}
-Elke dia krijgt ook "notities".
+${SLIDETYPES}
 
 Antwoord alleen met JSON:
 {"titel": "...", "thema": "digitaal" | "zakelijk" | "groen" | "energiek", "slides": [ ... ]}`, { json: true, klaar: "Dia's klaar" });
-    r.deck = deck;
+    deck.taal = taal;
     zet("ppt", "klaar", `${(deck.slides || []).length} dia's met spreektekst`);
+
+    const diaCheck = (dk, n) => {
+      const ind = maakIndeling(dk, deckInfo(r));
+      const meting = ind.waarschuwingen.map((w) => `- Dia ${w.dia}: ${w.tekst}`).join("\n") || "- Geen problemen gemeten.";
+      return vraag("diacheck", `Je bent de Dia-check in een team dat een PowerPoint voor Jort maakt. Controleer de presentatie streng, alsof je de docent bent die hem op het scherm ziet.
+Doeltaal: ${TAALNAAM[taal]}. Duur: ongeveer ${minuten} minuten.
+
+METING (de computer heeft elke dia nagemeten; deze problemen zijn zeker):
+${meting}
+
+DE DIA'S (JSON):
+${JSON.stringify(dk)}
+
+Check per dia:
+1. Taal: staat ALLES in het ${TAALNAAM[taal]}? Titels, punten, kaarten, labels, assen, bronnentitel, afsluiting EN de notities. Elk woord in een andere taal is een probleem (namen, merknamen en titels van bronnen mogen).
+2. Opmaak: past de tekst (zie meting), niet te veel tekst, geen lege of halve dia's, titels kort, geen herhaling van hetzelfde type, logische volgorde.
+3. Inhoud: klopt het met elkaar, sluit de spreektekst aan op de dia, past de totale spreektekst bij ${minuten} minuten (ongeveer ${minuten * 130} woorden)?
+${REGELS}
+
+Antwoord alleen met JSON. Schrijf de problemen in het Nederlands:
+{"oordeel": "goed" of "verbeteren", "taalOk": true of false, "problemen": [{"dia": 3, "probleem": "wat er mis is", "oplossing": "wat de PowerPoint-maker precies moet doen"}]}`, { json: true, klaar: n === 1 ? "Gecheckt" : "Eindcheck klaar" }).then((c) => ({ c, ind }));
+    };
+    ronde.textContent = "Dia-check";
+    let { c: dc, ind } = await diaCheck(deck, 1);
+    const diaProblemen = (dc.problemen || []).filter((x) => x && x.probleem);
+    if ((dc.oordeel === "verbeteren" || ind.waarschuwingen.length) && (diaProblemen.length || ind.waarschuwingen.length)) {
+      zet("diacheck", "klaar", `${diaProblemen.length + ind.waarschuwingen.length} punten terug naar PowerPoint`);
+      ronde.textContent = "Dia's verbeteren";
+      const nieuw = await vraag("ppt", `Je bent de PowerPoint-maker. De Dia-check heeft je presentatie afgekeurd. Los ALLE punten op en geef de complete, verbeterde presentatie terug.
+Doeltaal: ${TAALNAAM[taal]}: alles in die taal, ook de notities.
+
+PROBLEMEN VAN DE DIA-CHECK:
+${diaProblemen.map((x) => `- Dia ${x.dia}: ${x.probleem} → ${x.oplossing}`).join("\n")}
+GEMETEN DOOR DE COMPUTER:
+${ind.waarschuwingen.map((w) => `- Dia ${w.dia}: ${w.tekst}`).join("\n") || "- niets"}
+
+HUIDIGE PRESENTATIE (JSON):
+${JSON.stringify(deck)}
+
+${SLIDETYPES}
+${REGELS}
+
+Antwoord alleen met de complete JSON in dezelfde vorm: {"titel", "thema", "slides": [...]}`, { json: true, klaar: "Dia's verbeterd" });
+      if (nieuw && Array.isArray(nieuw.slides) && nieuw.slides.length) { deck = nieuw; deck.taal = taal }
+      ronde.textContent = "Dia-check (eindcheck)";
+      ({ c: dc, ind } = await diaCheck(deck, 2));
+    }
+    r.deck = deck; r.diacheck = dc; r.diaMeting = ind.waarschuwingen;
+    zet("diacheck", "klaar", dc.oordeel === "goed" && !ind.waarschuwingen.length ? "Alle dia's goedgekeurd" : `${(dc.problemen || []).length + ind.waarschuwingen.length} punten blijven over, zie Controle`);
     toonResultaat(r);
 
     ronde.textContent = "Spiekbrief";
@@ -526,7 +608,8 @@ Schrijf in Markdown met precies deze kopjes:
 ## De kern in 3 zinnen
 ## Begrippen die je moet kennen (begrip + uitleg in 1 zin, in een tabel)
 ## 5 vragen die je kunt krijgen (vraag + kort antwoord)
-## Dit moet je nog zelf doen (checklist met - [ ], ook elke [VUL IN] en [BRON ZOEKEN] uit de tekst)`, { klaar: "Spiekbrief klaar" });
+## Dit moet je nog zelf doen (checklist met - [ ], ook elke [VUL IN] en [BRON ZOEKEN] uit de tekst)
+${taal === "en" ? "Schrijf de uitleg in het Nederlands, maar de begrippen en de vragen en antwoorden in het Engels, want Jort moet ze in het Engels kunnen zeggen." : ""}`, { klaar: "Spiekbrief klaar" });
     zet("denker", "klaar", "Plan en spiekbrief klaar");
     ronde.textContent = "Klaar";
     toonResultaat(r);
@@ -557,7 +640,10 @@ function toonResultaat(r) {
   $("#p-opdracht").innerHTML = r.tekst ? md(r.tekst) : leeg("opdracht");
   $("#p-spreek").innerHTML = r.deck ? md(spreektekst(r)) : leeg("spreektekst");
   $("#p-spiek").innerHTML = r.spiek ? md(r.spiek) : leeg("spiekbrief");
-  $("#p-ppt").innerHTML = r.deck ? `<div class="slides">${r.deck.slides.map(diaPreview).join("")}</div>` : leeg("PowerPoint");
+  if (r.deck) {
+    const ind = maakIndeling(r.deck, deckInfo(r)), html = indelingNaarHtml(ind);
+    $("#p-ppt").innerHTML = `<div class="slides">${html.map((h, i) => `<figure class="dia">${h}<figcaption class="info"><span>${i + 1} · ${esc(r.deck.slides[i].type)}</span><span>${(r.deck.slides[i].notities || "").split(/\s+/).filter(Boolean).length} woorden</span></figcaption></figure>`).join("")}</div>`;
+  } else $("#p-ppt").innerHTML = leeg("PowerPoint");
   const c = r.controle;
   $("#p-controle").innerHTML = c ? `
     <div class="stats">
@@ -570,6 +656,9 @@ function toonResultaat(r) {
     <div class="doc">
       <h3>Bronnen</h3><p>${esc(c.bronnen)}</p>
       ${(c.verbeterpunten || []).length ? `<h3>Nog open</h3>${md((c.verbeterpunten).map((p) => "- " + p).join("\n"))}` : ""}
+      <h3>PowerPoint (Dia-check)</h3>
+      ${r.diacheck ? `<p>${r.diacheck.oordeel === "goed" && !(r.diaMeting || []).length ? "Alle dia's goedgekeurd." : "Deze punten zijn nog over:"} Taal: ${r.diacheck.taalOk === false ? "<b>niet alles in het " + esc(TAALNAAM[r.taal] || "") + "</b>" : "alles in het " + esc(TAALNAAM[r.taal] || "Nederlands")}.</p>
+      ${md([...(r.diaMeting || []).map((w) => `- Dia ${w.dia}: ${w.tekst}`), ...((r.diacheck.oordeel === "goed") ? [] : (r.diacheck.problemen || []).map((x) => `- Dia ${x.dia}: ${x.probleem}`))].join("\n"))}` : "<p>Nog niet gecheckt.</p>"}
       <h3>Jort-check</h3>${md(r.stijl && r.stijl.uitleg)}
       <h3>Taal</h3>${md(r.taal)}
     </div>` : leeg("controle");
@@ -577,15 +666,6 @@ function toonResultaat(r) {
 }
 function leeg(wat) {
   return `<div class="leeg"><b>Nog geen ${wat}.</b><span>Kies een opdracht en klik op "Laat het team werken". Na een paar minuten staat hier het resultaat.</span></div>`;
-}
-function diaPreview(d, i) {
-  const donker = ["titel", "stelling", "afsluiting"].includes(d.type);
-  const kop = d.titel || d.tekst || "";
-  const sub = d.ondertitel || (d.punten || []).join(" · ") || (d.kaarten || []).map((k) => k.kop).join(" · ") ||
-    (d.stappen || []).map((s) => s.jaar).join(" → ") || (d.vakken || []).map((v) => v.kop).join(" · ") ||
-    (d.getal ? d.getal + " " + (d.label || "") : "") || d.door || d.afbeelding || (d.bronnen ? d.bronnen.length + " bronnen" : "");
-  return `<figure class="dia" style="margin:0"><div class="vlak ${donker ? "donker" : ""}"><b>${esc(kop)}</b><span>${esc(sub)}</span></div>
-    <figcaption class="info"><span>${i + 1} · ${esc(d.type)}</span><span>${(d.notities || "").split(/\s+/).filter(Boolean).length} woorden</span></figcaption></figure>`;
 }
 document.querySelectorAll('[role="tab"]').forEach((t) => t.onclick = () => {
   document.querySelectorAll('[role="tab"]').forEach((x) => { x.setAttribute("aria-selected", x === t); $("#" + x.getAttribute("aria-controls")).hidden = x !== t });
@@ -613,7 +693,8 @@ async function bewaar(soort) {
     if (soort === "pptx") { data = await bouwDeck(R.deck, R); ext = "pptx" }
     if (soort === "opdracht") {
       const titel = ((R.tekst.match(/^#\s+(.+)$/m) || [])[1] || R.titel).replace(/[*_]/g, "");
-      data = await word(R.tekst.replace(/^#\s+.+\n/m, ""), { titel, ondertitel: `${R.vak}${R.week ? " · week " + R.week : ""}` });
+      data = await word(R.tekst.replace(/^#\s+.+\n/m, ""), { titel, ondertitel: `${R.vak}${R.week ? " · week " + R.week : ""}`,
+        datum: new Date().toLocaleDateString(R.taal === "en" ? "en-GB" : "nl-NL", { day: "numeric", month: "long", year: "numeric" }) });
     }
     if (soort === "spreek") { data = await word(spreektekst(R)); n += " - spreektekst" }
     if (soort === "spiek") { data = await word(`# Spiekbrief: ${R.titel}\n\n` + R.spiek); n += " - spiekbrief" }
@@ -624,76 +705,10 @@ async function bewaar(soort) {
   }
 }
 
-/* ---------- PowerPoint bouwen (zelfde ontwerp als tools/maak-deck.js) ---------- */
-const THEMAS = {
-  digitaal: { donker: "141B34", licht: "FFFFFF", zacht: "EEF1FB", accent: "6C5CE7", accent2: "00B894", tekst: "1E2433", grijs: "5B6275" },
-  zakelijk: { donker: "1E2761", licht: "FFFFFF", zacht: "EEF2FA", accent: "F2A541", accent2: "3E7CB1", tekst: "1E2433", grijs: "5B6275" },
-  groen: { donker: "1F3B2D", licht: "FFFFFF", zacht: "EEF5EF", accent: "97BC62", accent2: "E07A5F", tekst: "1F2A24", grijs: "56645B" },
-  energiek: { donker: "2F3C7E", licht: "FFFFFF", zacht: "FFF1F1", accent: "F96167", accent2: "F2C14E", tekst: "222222", grijs: "5E5E6E" },
-};
+/* ---------- PowerPoint bouwen (tools/deck-layout.js) ---------- */
+const deckInfo = (r) => ({ vak: r.vak, week: r.week, auteur: "Jort Eeltink" });
 async function bouwDeck(spec, r) {
-  const K = THEMAS[spec.thema] || THEMAS.digitaal, KOP = "Cambria", BODY = "Calibri";
-  const pres = new PptxGenJS();
-  pres.layout = "LAYOUT_16x9"; pres.title = spec.titel || r.titel; pres.author = "Jort Eeltink";
-  pres.theme = { headFontFace: KOP, bodyFontFace: BODY };
-  pres.defineSlideMaster({ title: "DONKER", background: { color: K.donker }, objects: [
-    { placeholder: { options: { name: "titel", type: "title", x: 0.5, y: 1.7, w: 9, h: 1.3, fontFace: KOP, fontSize: 38, bold: true, color: K.licht, valign: "bottom", align: "left", margin: 0 }, text: "" } }] });
-  pres.defineSlideMaster({ title: "LICHT", background: { color: K.licht }, objects: [
-    { placeholder: { options: { name: "titel", type: "title", x: 0.5, y: 0.35, w: 9, h: 0.8, fontFace: KOP, fontSize: 28, bold: true, color: K.donker, valign: "middle", align: "left", margin: 0 }, text: "" } },
-    { text: { text: `${r.vak}${r.week ? " · week " + r.week : ""}`, options: { x: 0.5, y: 5.2, w: 7, h: 0.3, fontSize: 10, color: K.grijs, fontFace: BODY, margin: 0 } } }],
-    slideNumber: { x: 9.0, y: 5.2, w: 0.5, h: 0.3, fontSize: 10, color: K.grijs, fontFace: BODY } });
-  const tb = (x) => Object.assign({ isTextBox: true, fontFace: BODY, color: K.tekst, margin: 0 }, x);
-  const lijst = (items, x = {}) => (items || []).map((t, i, a) => ({ text: String(t), options: Object.assign({ bullet: { indent: 18 }, breakLine: i < a.length - 1, paraSpaceAfter: 8 }, x) }));
-  const kaart = (s, x, y, w, h, c = K.zacht) => s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y, w, h, fill: { color: c }, rectRadius: 0.12, line: { color: c } });
-  const bol = (s, x, y, d, t, c = K.accent) => { s.addShape(pres.shapes.OVAL, { x, y, w: d, h: d, fill: { color: c }, line: { color: c } }); s.addText(String(t), tb({ x, y, w: d, h: d, align: "center", valign: "middle", fontSize: Math.round(d * 28), bold: true, color: K.licht })) };
-  const LICHT = () => pres.addSlide({ masterName: "LICHT" });
-  const M = {
-    titel(d) { const s = pres.addSlide({ masterName: "DONKER" }); s.addText(d.titel || "", { placeholder: "titel" });
-      if (d.ondertitel) s.addText(d.ondertitel, tb({ x: 0.5, y: 3.15, w: 9, h: 0.6, fontSize: 18, color: K.zacht }));
-      s.addShape(pres.shapes.OVAL, { x: 0.5, y: 0.6, w: 0.6, h: 0.6, fill: { color: K.accent }, line: { color: K.accent } });
-      s.addShape(pres.shapes.OVAL, { x: 0.95, y: 0.6, w: 0.6, h: 0.6, fill: { color: K.accent2, transparency: 20 }, line: { color: K.accent2, transparency: 20 } });
-      s.addText(`Jort Eeltink  ·  ${r.vak}`, tb({ x: 0.5, y: 4.7, w: 9, h: 0.4, fontSize: 12, color: K.zacht })); return s },
-    punten(d) { const s = LICHT(); s.addText(d.titel || "", { placeholder: "titel" }); const w = d.kern ? 5.4 : 9;
-      s.addText(lijst(d.punten), tb({ x: 0.5, y: 1.35, w, h: 3.6, fontSize: 16, valign: "top" }));
-      if (d.kern) { kaart(s, 6.2, 1.35, 3.3, 3.5, K.donker); s.addText("Kern", tb({ x: 6.5, y: 1.6, w: 2.7, h: 0.4, fontSize: 12, bold: true, color: K.accent2 }));
-        s.addText(d.kern, tb({ x: 6.5, y: 2.05, w: 2.7, h: 2.6, fontSize: 18, bold: true, color: K.licht, valign: "top", fontFace: KOP })) } return s },
-    kaarten(d) { const s = LICHT(); s.addText(d.titel || "", { placeholder: "titel" }); const ks = (d.kaarten || []).slice(0, 6), n = ks.length;
-      const kol = n <= 3 ? n : n === 4 ? 2 : 3, rij = Math.ceil(n / kol), g = 0.3, w = (9 - g * (kol - 1)) / kol, h = (3.6 - g * (rij - 1)) / rij;
-      ks.forEach((k, i) => { const x = 0.5 + (i % kol) * (w + g), y = 1.35 + Math.floor(i / kol) * (h + g); kaart(s, x, y, w, h);
-        bol(s, x + 0.2, y + 0.2, 0.42, k.letter || i + 1, i % 2 ? K.accent2 : K.accent);
-        s.addText(k.kop || "", tb({ x: x + 0.75, y: y + 0.2, w: w - 0.95, h: 0.42, fontSize: 15, bold: true, color: K.donker, valign: "middle" }));
-        s.addText(k.tekst || "", tb({ x: x + 0.2, y: y + 0.75, w: w - 0.4, h: h - 0.9, fontSize: rij > 1 ? 12 : 14, valign: "top" })) }); return s },
-    tijdlijn(d) { const s = LICHT(); s.addText(d.titel || "", { placeholder: "titel" }); const st = (d.stappen || []).slice(0, 6), n = st.length || 1, w = 9 / n, yl = 2.75;
-      s.addShape(pres.shapes.LINE, { x: 0.5 + w / 2, y: yl, w: 9 - w, h: 0, line: { color: K.grijs, width: 2 } });
-      st.forEach((p, i) => { const cx = 0.5 + i * w + w / 2;
-        s.addText(String(p.jaar || ""), tb({ x: cx - w / 2, y: 1.85, w, h: 0.5, fontSize: 20, bold: true, color: K.accent, align: "center", fontFace: KOP }));
-        s.addShape(pres.shapes.OVAL, { x: cx - 0.13, y: yl - 0.13, w: 0.26, h: 0.26, fill: { color: i % 2 ? K.accent2 : K.accent }, line: { color: K.licht, width: 2 } });
-        s.addText(p.tekst || "", tb({ x: cx - w / 2 + 0.08, y: 3.1, w: w - 0.16, h: 1.9, fontSize: 13, align: "center", valign: "top" })) }); return s },
-    matrix(d) { const s = LICHT(); s.addText(d.titel || "", { placeholder: "titel" }); const as = Array.isArray(d.assen) && d.assen.length === 2;
-      const x0 = as ? 0.9 : 0.5, y0 = 1.3, W = 9.5 - x0, H = 3.7, g = 0.2, w = (W - g) / 2, h = (H - g) / 2;
-      (d.vakken || []).slice(0, 4).forEach((v, i) => { const x = x0 + (i % 2) * (w + g), y = y0 + Math.floor(i / 2) * (h + g); kaart(s, x, y, w, h);
-        s.addText(v.kop || "", tb({ x: x + 0.2, y: y + 0.12, w: w - 0.4, h: 0.35, fontSize: 14, bold: true, color: i % 2 ? K.accent2 : K.accent }));
-        s.addText(lijst(v.punten, { paraSpaceAfter: 3 }), tb({ x: x + 0.2, y: y + 0.5, w: w - 0.4, h: h - 0.6, fontSize: 12, valign: "top" })) });
-      if (as) { s.addText(`${d.assen[0]} →`, tb({ x: x0, y: 5.02, w: W, h: 0.2, fontSize: 10, color: K.grijs, align: "center" }));
-        s.addText(`${d.assen[1]} →`, tb({ x: -0.75, y: y0 + H / 2 - 0.15, w: 2.2, h: 0.3, fontSize: 10, color: K.grijs, rotate: 270, align: "center" })) } return s },
-    getal(d) { const s = LICHT(); s.addText(d.titel || "", { placeholder: "titel" }); kaart(s, 0.5, 1.35, 4.2, 3.5, K.donker); const g = String(d.getal || "");
-      s.addText(g, tb({ x: 0.7, y: 1.7, w: 3.8, h: 1.6, fontSize: g.length <= 4 ? 60 : g.length <= 7 ? 44 : 32, bold: true, color: K.accent2, align: "center", valign: "middle", fontFace: KOP }));
-      s.addText(d.label || "", tb({ x: 0.7, y: 3.35, w: 3.8, h: 1.1, fontSize: 15, color: K.licht, align: "center", valign: "top" }));
-      s.addText(d.tekst || "", tb({ x: 5.1, y: 1.35, w: 4.4, h: 3.1, fontSize: 16, valign: "top" }));
-      if (d.bron) s.addText(d.bron, tb({ x: 5.1, y: 4.5, w: 4.4, h: 0.4, fontSize: 10, color: K.grijs, italic: true })); return s },
-    stelling(d) { const s = pres.addSlide({ masterName: "DONKER" }); s.addText("“", tb({ x: 0.5, y: 0.4, w: 1.5, h: 1.3, fontSize: 96, color: K.accent, fontFace: KOP }));
-      s.addText(d.tekst || d.titel || "", tb({ x: 0.9, y: 1.4, w: 8.2, h: 2.6, fontSize: 28, bold: true, color: K.licht, fontFace: KOP, valign: "middle" }));
-      if (d.door) s.addText(d.door, tb({ x: 0.9, y: 4.2, w: 8.2, h: 0.4, fontSize: 14, color: K.accent2 })); return s },
-    afbeelding(d) { const s = LICHT(); s.addText(d.titel || "", { placeholder: "titel" }); const w = d.tekst ? 5.6 : 9; kaart(s, 0.5, 1.3, w, 3.7);
-      s.addText(`[Foto invoegen: ${d.afbeelding || "afbeelding"}]`, tb({ x: 0.8, y: 1.3, w: w - 0.6, h: 3.7, fontSize: 14, color: K.grijs, align: "center", valign: "middle" }));
-      if (d.tekst) s.addText(d.tekst, tb({ x: 6.4, y: 1.3, w: 3.1, h: 3.7, fontSize: 15, valign: "top" })); return s },
-    bronnen(d) { const s = LICHT(); s.addText(d.titel || "Bronnen", { placeholder: "titel" }); const b = d.bronnen || [];
-      s.addText(b.map((t, i) => ({ text: String(t), options: { breakLine: i < b.length - 1, paraSpaceAfter: 6 } })), tb({ x: 0.5, y: 1.3, w: 9, h: 3.7, fontSize: b.length > 6 ? 10 : 11, valign: "top" })); return s },
-    afsluiting(d) { const s = pres.addSlide({ masterName: "DONKER" }); s.addText(d.titel || "Vragen?", { placeholder: "titel" });
-      if (d.punten) s.addText(lijst(d.punten), tb({ x: 0.5, y: 3.2, w: 9, h: 1.8, fontSize: 16, color: K.zacht, valign: "top" })); return s },
-  };
-  (spec.slides || []).forEach((d) => { const s = (M[d.type] || M.punten)(d); if (d.notities) s.addNotes(String(d.notities)) });
-  return await pres.write({ outputType: "blob" });
+  return await indelingNaarPptx(maakIndeling(spec, deckInfo(r)), PptxGenJS, deckInfo(r)).write({ outputType: "blob" });
 }
 
 if (R) toonResultaat(R); else toonResultaat({});

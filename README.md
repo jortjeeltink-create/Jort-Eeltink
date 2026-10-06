@@ -2,15 +2,16 @@
 Voor school
 
 ## Opdrachtteam (app)
-`app/opdrachtteam.html` is een app waarin je een opdracht kiest of plakt. Acht AI-agents werken hem dan samen uit:
+`app/opdrachtteam.html` is een app waarin je een opdracht kiest of plakt. Negen AI-agents werken hem dan samen uit:
 - **Denker**: maakt het plan en de spiekbrief.
 - **Creatief**: bedenkt ideeën en een sterke opening.
 - **Rekenaar**: doet het rekenwerk.
 - **Schrijver**: schrijft de opdracht uit.
-- **Taal**: verbetert spelling en zinnen.
+- **Taal**: verbetert spelling en zinnen en checkt dat alles in de goede taal staat.
 - **Jort-check**: checkt of het klinkt alsof jij het schreef.
 - **Controleur**: checkt alle eisen. Bij fouten gaat het werk terug naar de Schrijver.
 - **PowerPoint**: maakt de dia's met spreektekst.
+- **Dia-check**: meet en checkt elke dia: past alle tekst, ziet het er goed uit, en staat alles in de goede taal (bijvoorbeeld helemaal Engels). Bij fouten gaan de dia's terug naar PowerPoint.
 
 Je krijgt alles in Word en PowerPoint: de opdracht (Word, met voorblad), de presentatie (PowerPoint), wat je moet zeggen (Word) en wat je moet weten (Word).
 De app draait als Claude-artifact op je eigen Claude-account. Pas je `docs/studieoverzicht.md` aan? Draai dan `python3 app/bouw.py`.

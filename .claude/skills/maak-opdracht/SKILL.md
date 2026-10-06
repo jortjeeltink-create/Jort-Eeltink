@@ -12,6 +12,11 @@ Jort wil dat de opdracht helemaal af is: een mooie PowerPoint, de uitgewerkte te
 - Heeft Jort een opdrachtbeschrijving, PowerPoint of rubric meegestuurd? Dan gaat die voor.
 - Vraag alleen iets als het echt niet anders kan, bijvoorbeeld als hij nog een bedrijf moet kiezen. Kies anders zelf iets logisch en zeg welke keuze je hebt gemaakt.
 
+## Taal
+- Bepaal eerst in welke taal de opdracht moet: Engels bij de Engelse les, of als de opdracht Engels is. Anders Nederlands.
+- In het Engels staat ALLES in het Engels: de tekst, kopjes, dia's, labels, notities en spreektekst. Zet `"taal": "en"` in `slides.json`, dan zijn ook de vaste labels Engels ("References", "Key point").
+- De spiekbrief legt uit in het Nederlands, maar de begrippen, vragen en antwoorden staan in de taal van de opdracht.
+
 ## 2. Onderzoek
 - Zoek actuele, betrouwbare bronnen met WebSearch en WebFetch. Controleer elk feit en elk cijfer dat je gebruikt.
 - Verzin nooit een bron, cijfer, citaat, bezoek of ervaring. Is iets niet te vinden, laat het dan weg of zet `[VUL IN: ...]`.
@@ -40,11 +45,14 @@ Hoe je de Word-bestanden maakt:
 - Thema's: `digitaal` (standaard), `zakelijk`, `groen` (MVO en duurzaamheid) en `energiek` (marketing).
 - Zet weinig tekst op een dia, maximaal 5 korte punten. Het verhaal staat in `notities`: daar komt de spreektekst van die dia, zodat Jort die ook in PowerPoint ziet.
 - Plan ongeveer 1 dia per minuut spreektijd, plus de titel-, bronnen- en afsluitdia.
+- Houd je aan de maxima: titels 7 woorden, 5 punten van 12 woorden, kaarten 18 woorden en vakken in een matrix 3 punten van 6 woorden.
+- `maak-deck.js` meet elke dia en geeft waarschuwingen voor tekst die niet past, te veel punten, ontbrekende spreektekst en drie keer hetzelfde type achter elkaar. Los **alle** waarschuwingen op in `slides.json` en bouw opnieuw, tot er "Alle tekst past." staat.
 - Eigen foto's van Jort komen als `afbeelding`-dia. Bestaat het bestand nog niet, dan verschijnt er een vak met de naam van de foto die erin moet.
 
 ## 5. Controle
 - Render de dia's en de Word-bestanden en bekijk ze: `soffice --headless --convert-to pdf <bestand>`, daarna `pdftoppm -jpeg -r 70`. Ontbreekt Impress of Writer, installeer dan eerst `libreoffice-impress` en `libreoffice-writer`.
-- Let op tekst die buiten een vak loopt, overlap en lege dia's. Los dat op in `slides.json` en bouw opnieuw.
+- **Dia-check, altijd aan het eind.** Bekijk elke dia als een docent. Loopt er tekst buiten een vak, is er overlap, een lege of halve dia, of te veel tekst? Los dat op in `slides.json` en bouw opnieuw.
+- **Taalcheck.** Staat alles in de goede taal, ook kopjes, labels en notities? Eén Nederlands woord in een Engelse presentatie is al fout.
 - Controleer de taal: korte zinnen, duidelijk Nederlands, geen AI-woorden (zie `CLAUDE.md`). Tel de woorden van de opdracht, zonder de bronnenlijst.
 
 ## 6. Opleveren

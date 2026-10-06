@@ -1,6 +1,20 @@
 # Jort-Eeltink
 Voor school
 
+## Opdrachtteam (app)
+`app/opdrachtteam.html` is een app waarin je een opdracht kiest of plakt. Acht AI-agents werken hem dan samen uit:
+- **Denker**: maakt het plan en de spiekbrief.
+- **Creatief**: bedenkt ideeën en een sterke opening.
+- **Rekenaar**: doet het rekenwerk.
+- **Schrijver**: schrijft de opdracht uit.
+- **Taal**: verbetert spelling en zinnen.
+- **Jort-check**: checkt of het klinkt alsof jij het schreef.
+- **Controleur**: checkt alle eisen. Bij fouten gaat het werk terug naar de Schrijver.
+- **PowerPoint**: maakt de dia's met spreektekst.
+
+Je krijgt een `.pptx`, de uitgewerkte opdracht, wat je moet zeggen en wat je moet weten.
+De app draait als Claude-artifact op je eigen Claude-account. Pas je `docs/studieoverzicht.md` aan? Draai dan `python3 app/bouw.py`.
+
 ## AI-agents voor schoolwerk
 In `.claude/agents/` staan agents die je in Claude Code kunt gebruiken, voor alle vakken:
 

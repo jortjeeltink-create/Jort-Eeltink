@@ -1,0 +1,692 @@
+<title>Opdrachtteam</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: werkbank. Links de opdracht, rechts het team dat zichtbaar werkt, onder de opgeleverde stukken in tabbladen. */
+:root {
+  --bg: #F3F4F9; --surface: #FFFFFF; --ink: #151935; --muted: #5C6182; --line: #DADDEB;
+  --accent: #5443D6; --accent-ink: #FFFFFF; --tint: #ECEAFD;
+  --ok: #0B7F66; --warn: #9A6412; --err: #BC3B34;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 14px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0F1224; --surface: #181C33; --ink: #E8EAF6; --muted: #9EA3C6; --line: #2C3152;
+  --accent: #9486FF; --accent-ink: #0F1224; --tint: #26234B;
+  --ok: #45CFA8; --warn: #E3B04B; --err: #F2827A; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0F1224; --surface: #181C33; --ink: #E8EAF6; --muted: #9EA3C6; --line: #2C3152;
+  --accent: #9486FF; --accent-ink: #0F1224; --tint: #26234B;
+  --ok: #45CFA8; --warn: #E3B04B; --err: #F2827A; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 16px/1.55 var(--f-body); padding-inline: 16px; padding-block: 28px 64px }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 28px }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.1 }
+h1 { font-size: clamp(2rem, 5vw, 3.1rem); font-weight: 800; letter-spacing: -0.02em }
+h2 { font-size: 1.3rem; font-weight: 700 }
+.lead { color: var(--muted); margin: 8px 0 0; max-width: 62ch }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px }
+.label { font: 600 0.72rem/1 var(--f-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted) }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 24px; align-items: start }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr) } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; display: grid; gap: 16px; min-width: 0 }
+
+form { display: grid; gap: 14px }
+.row { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px }
+@media (max-width: 480px) { .row { grid-template-columns: 1fr } }
+.field { display: grid; gap: 6px; min-width: 0 }
+.field > span { font-weight: 700; font-size: 0.92rem }
+.field small { color: var(--muted); font-size: 0.82rem }
+select, textarea, input[type="text"] {
+  font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; width: 100%; min-width: 0 }
+textarea { resize: vertical; min-height: 96px; line-height: 1.45 }
+#opdracht { min-height: 170px }
+select:focus-visible, textarea:focus-visible, input:focus-visible, button:focus-visible, [role="tab"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+details { border-top: 1px solid var(--line); padding-top: 12px }
+details > summary { cursor: pointer; font-weight: 700; font-size: 0.92rem }
+details[open] > summary { margin-bottom: 12px }
+details .field + .field { margin-top: 12px }
+
+.btn { font: 700 1rem/1 var(--f-body); border-radius: 999px; padding: 13px 22px; border: 1px solid transparent; cursor: pointer; background: var(--accent); color: var(--accent-ink) }
+.btn:disabled { opacity: 0.5; cursor: not-allowed }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line) }
+.btn.small { padding: 9px 14px; font-size: 0.88rem }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center }
+.notice { font-size: 0.88rem; color: var(--muted) }
+.notice.err { color: var(--err) }
+.banner { border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px; font-size: 0.9rem; color: var(--muted) }
+
+/* Team */
+.team-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap }
+.team { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px }
+@media (max-width: 480px) { .team { grid-template-columns: minmax(0, 1fr) } }
+.agent { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 4px 12px; align-items: start; transition: border-color .2s, background .2s }
+.agent .mono { grid-row: span 3; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font: 700 0.9rem/1 var(--f-display); background: var(--tint); color: var(--accent) }
+.agent h3 { font-size: 1rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap }
+.agent .rol { font-size: 0.84rem; color: var(--muted); margin: 0 }
+.agent .live { font: 0.74rem/1.4 var(--f-mono); color: var(--muted); margin: 4px 0 0; max-height: 3.1em; overflow: hidden; overflow-wrap: anywhere }
+.agent .live:empty { display: none }
+.chip { font: 600 0.66rem/1 var(--f-mono); text-transform: uppercase; letter-spacing: 0.06em; padding: 4px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted) }
+.agent[data-s="bezig"] { border-color: var(--accent); background: var(--tint) }
+.agent[data-s="bezig"] .chip { color: var(--accent); border-color: var(--accent) }
+.agent[data-s="bezig"] .mono { background: var(--accent); color: var(--accent-ink) }
+.agent[data-s="klaar"] .chip { color: var(--ok); border-color: var(--ok) }
+.agent[data-s="fout"] .chip { color: var(--err); border-color: var(--err) }
+.agent[data-s="overgeslagen"] { opacity: 0.6 }
+@media (prefers-reduced-motion: no-preference) {
+  .agent[data-s="bezig"] .mono { animation: puls 1.4s ease-in-out infinite }
+  @keyframes puls { 50% { transform: scale(0.9) } }
+}
+.flow { font: 0.78rem/1.5 var(--f-mono); color: var(--muted); margin: 0 }
+
+/* Resultaat */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 10px }
+[role="tab"] { font: 700 0.92rem/1 var(--f-body); background: transparent; color: var(--muted); border: 1px solid transparent; border-radius: 999px; padding: 9px 14px; cursor: pointer }
+[role="tab"][aria-selected="true"] { background: var(--tint); color: var(--accent); border-color: var(--accent) }
+.doc { max-width: 72ch; min-width: 0; overflow-wrap: anywhere }
+.doc h1, .doc h2, .doc h3 { margin: 1.2em 0 0.4em }
+.doc h1 { font-size: 1.7rem } .doc h2 { font-size: 1.3rem } .doc h3 { font-size: 1.08rem }
+.doc p, .doc ul, .doc ol { margin: 0 0 0.8em }
+.doc code { font-family: var(--f-mono); font-size: 0.9em }
+.doc table { border-collapse: collapse; display: block; overflow-x: auto }
+.doc th, .doc td { border: 1px solid var(--line); padding: 6px 10px; text-align: left }
+.doc mark, .gat { background: var(--tint); color: var(--accent); border-radius: 4px; padding: 0 3px; font-weight: 700 }
+.leeg { color: var(--muted); display: grid; gap: 6px; padding-block: 24px }
+.stats { display: flex; flex-wrap: wrap; gap: 10px }
+.stat { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; min-width: 120px }
+.stat b { display: block; font: 800 1.5rem/1.1 var(--f-display); font-variant-numeric: tabular-nums }
+.stat span { font-size: 0.8rem; color: var(--muted) }
+.check { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px }
+.check li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px }
+.check .ok { color: var(--ok); font-weight: 700 } .check .nok { color: var(--err); font-weight: 700 }
+.slides { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px }
+.dia { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: grid; min-width: 0 }
+.dia .vlak { aspect-ratio: 16 / 9; max-width: 100%; padding: 12px; display: grid; align-content: start; gap: 6px; background: var(--surface) }
+.dia .vlak.donker { background: var(--ink); color: var(--bg) }
+.dia .vlak b { font: 700 0.95rem/1.2 var(--f-display) }
+.dia .vlak span { font-size: 0.72rem; opacity: 0.8; overflow: hidden }
+.dia .info { padding: 8px 12px; border-top: 1px solid var(--line); font: 0.72rem/1.3 var(--f-mono); color: var(--muted); display: flex; justify-content: space-between }
+.files { display: flex; flex-wrap: wrap; gap: 8px }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <p class="label">Tio · Digital Business &amp; Generative AI</p>
+      <h1>Opdrachtteam</h1>
+      <p class="lead">Kies of plak een opdracht. Acht AI-collega's werken hem samen uit: een tekst, een PowerPoint, wat je moet zeggen en wat je moet weten.</p>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="t-opdracht">
+      <h2 id="t-opdracht">De opdracht</h2>
+      <form id="form">
+        <div class="row">
+          <label class="field"><span>Vak</span><select id="vak"></select></label>
+          <label class="field"><span>Week</span><select id="week"></select></label>
+        </div>
+        <label class="field">
+          <span>Opdracht</span>
+          <textarea id="opdracht" spellcheck="true"></textarea>
+          <small>Komt uit je studieoverzicht. Pas aan of plak de opdracht van Blackboard.</small>
+        </label>
+        <label class="field">
+          <span>Wensen</span>
+          <input type="text" id="wensen" placeholder="Bijv. gebruik KPN als voorbeeld, presentatie van 5 minuten">
+        </label>
+        <details>
+          <summary>Lesmateriaal, bronnen en jouw schrijfstijl</summary>
+          <label class="field">
+            <span>Lesmateriaal en bronnen</span>
+            <textarea id="materiaal" placeholder="Plak hier tekst uit artikelen, sheets of websites, met titel, auteur, jaar en link. Het team gebruikt alleen deze bronnen."></textarea>
+            <small>Het team kan zelf niet op internet zoeken. Zonder bronnen zet het [BRON ZOEKEN] waar een bron nodig is.</small>
+          </label>
+          <label class="field">
+            <span>Een stuk tekst dat je zelf schreef</span>
+            <textarea id="stijl" placeholder="Plak hier een eerdere tekst van jezelf. De Jort-check laat de nieuwe tekst daarop lijken."></textarea>
+            <small>Wordt alleen in deze browser onthouden.</small>
+          </label>
+          <label class="field" id="beeld-veld" hidden>
+            <span>Foto's van de opdracht of sheets</span>
+            <input type="file" id="beelden" accept="image/*" multiple>
+          </label>
+        </details>
+        <div class="actions">
+          <button class="btn" type="submit" id="start" disabled>Laat het team werken</button>
+          <button class="btn ghost" type="button" id="stop" hidden>Stoppen</button>
+        </div>
+        <p class="banner" id="status-pagina">Verbinden met Claude…</p>
+      </form>
+    </section>
+
+    <section class="panel" aria-labelledby="t-team">
+      <div class="team-head">
+        <h2 id="t-team">Het team</h2>
+        <p class="label" id="ronde">Klaar om te starten</p>
+      </div>
+      <div class="team" id="team"></div>
+      <p class="flow">Denker → Creatief + Rekenaar → Schrijver → Taal → Jort-check → Controleur (bij fouten nog een ronde) → PowerPoint → Denker maakt spiekbrief</p>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="t-resultaat">
+    <div class="team-head">
+      <h2 id="t-resultaat">Wat het team opleverde</h2>
+      <div class="files" id="files"></div>
+    </div>
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-opdracht" aria-selected="true" aria-controls="p-opdracht">Opdracht</button>
+      <button role="tab" id="tab-ppt" aria-selected="false" aria-controls="p-ppt">PowerPoint</button>
+      <button role="tab" id="tab-spreek" aria-selected="false" aria-controls="p-spreek">Wat je zegt</button>
+      <button role="tab" id="tab-spiek" aria-selected="false" aria-controls="p-spiek">Wat je moet weten</button>
+      <button role="tab" id="tab-controle" aria-selected="false" aria-controls="p-controle">Controle</button>
+    </div>
+    <div role="tabpanel" id="p-opdracht" class="doc"></div>
+    <div role="tabpanel" id="p-ppt" hidden></div>
+    <div role="tabpanel" id="p-spreek" class="doc" hidden></div>
+    <div role="tabpanel" id="p-spiek" class="doc" hidden></div>
+    <div role="tabpanel" id="p-controle" hidden></div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<script>
+const OVERZICHT = {"vakken": [{"naam": "MAPPING THE BUSINESS (MABU)", "intro": "Specialisatie Jort: Digital Business & Generative AI.\nDoorlopende opdracht: individueel brancheonderzoek als portfolio, met wekelijkse deelopdrachten. Gebruik betrouwbare bronnen en APA. De presentatie bevat de verzamelde opdrachten. De PowerPoints noemen 10–15 minuten voor de eindpresentatie en minimaal 14 tot maximaal 20 A4 voor het portfolio (inclusief voorblad, inhoudsopgave, bronnen en bijlagen).", "weken": [{"week": 1, "titel": "Introductie en branche", "tekst": "- INLEVEREN/MAKEN: schrijf maximaal 500 woorden over de achtergrond van je branche/specialisatie, met beeldmateriaal.\n- Maak ook een visuele tijdlijn met belangrijke ontwikkelingen en mijlpalen sinds het ontstaan.\n- Zet een voorblad en inhoudsopgave klaar voor je portfolio; gebruik APA voor bronnen.\n- Jorts onderwerp is Digital Business & Generative AI; houd de tijdlijn daarbij gericht.\n- IN DE LES: kennismaking, macro/meso/micro leren onderscheiden, nieuws uit de branche bespreken."}, {"week": 2, "titel": "PESTEL deel 1", "tekst": "- INLEVEREN/MAKEN: maak een volledige PESTEL-analyse voor je branche: politiek, economisch, sociaal-cultureel, technologisch, milieutechnisch en juridisch.\n- Richtlijn uit de PowerPoint: ongeveer 500 woorden totaal, circa 100 woorden per factor, met beeldmateriaal en APA-bronnen.\n- Bereid een presentatie van ongeveer 5 minuten voor; de klas stelt daarna minimaal drie vragen.\n- IN DE LES: bespreek actuele, concrete invloeden en zoek voor ieder PESTEL-onderdeel recente bronnen."}, {"week": 3, "titel": "PESTEL verdiepen", "tekst": "- INLEVEREN/MAKEN: kies één PESTEL-factor en onderzoek de invloed daarvan op de branche. Zoek minimaal vier concrete voorbeelden.\n- Ga waar mogelijk naar buiten en bezoek een bedrijf/winkel; de PowerPoint zegt dat dit zichtbaar moet zijn in de foto's. Vul dit aan met online onderzoek.\n- Maak een LinkedIn-post met tekst van maximaal 300 woorden en minimaal vier foto's/afbeeldingen; verwijs naar bronnen volgens APA.\n- Jort koos eerder KPN voor deze deelopdracht; werk met KPN als dat nog steeds de gekozen case is."}, {"week": 4, "titel": "Maatschappelijk verantwoord ondernemen (MVO)", "tekst": "- INLEVEREN/MAKEN: neem een podcast op over MVO binnen je branche. Kies zelf een concreet onderwerp, zoals een ontwikkeling, uitdaging of succesverhaal.\n- Podcastduur: minimaal 3 en maximaal 5 minuten. Maak een script als voorbereiding, maar lever de opgenomen podcast in (niet alleen tekst).\n- Neem bronnen op in APA en zet de podcast of link in je portfolio.\n- IN DE LES: waardentest en reflectie; onderzoek SDG's en een kringloop-/vintagewinkel."}, {"week": 5, "titel": "Trends en ontwikkelingen", "tekst": "- INLEVEREN/MAKEN: maak een visionboard over hoe jouw branche er over 25 jaar uit kan zien. Gebruik een AI-tool zoals ChatGPT, Claude of Copilot om mogelijkheden te verkennen en analyseer de uitkomsten. De opdracht is visueel, niet een geschreven tekst.\n- IN DE LES: kijk naar voorbeelden van AI, trends, duurzaamheid en diversiteit. Er staat ook een groepsbezoek aan HEMA, Rituals of Bijenkorf met foto's; laat bevindingen de volgende week zien. Behandel dit als lesactiviteit/voorbereiding tenzij de docent het als verplicht bezoek bevestigt."}, {"week": 6, "titel": "Klantonderzoek", "tekst": "- INLEVEREN/MAKEN: onderzoek potentiële klanten in je branche met online bronnen, reviews, social media of communities.\n- Maak minimaal drie persona's op basis van onderzoek.\n- Kies één persona en maak daarvoor een visuele customer journey, van eerste contact tot klant/terugkerende klant. Neem online en offline contactmomenten mee.\n- Download/plak de persona's en customer journey in het portfolio.\n- ChatGPT mag helpen, maar raadpleeg ook betrouwbare andere bronnen."}, {"week": 7, "titel": "Distributieonderzoek", "tekst": "- INLEVEREN/MAKEN: kies twee producten of diensten van je organisatie en breng alle distributiekanalen visueel in kaart.\n- Laat zien hoe het product/de dienst van aanbieder naar klant komt, welke tussenpartijen betrokken zijn en hoe kanalen met elkaar samenhangen.\n- Maak een schema/afbeelding (zelf tekenen of Canva) en voeg het toe aan het portfolio; geen lange geschreven tekst gevraagd."}, {"week": 8, "titel": "Spelers in de markt en concurrentie", "tekst": "- INLEVEREN/MAKEN: maak een concurrentieanalyse met het vijfkrachtenmodel van Porter, ongeveer 300 woorden.\n- Breng concurrenten, afnemers, mogelijke nieuwkomers, substituten en leveranciers in kaart.\n- Bezoek één speler/concurrent en maak een vlog van minimaal één minuut. Laat de vlog zien in de eindpresentatie en zet een link in het interactieve portfolio.\n- Vlog bevat introductie, observaties (bijvoorbeeld winkel/productpresentatie; praat zo mogelijk met een medewerker) en afsluiting."}, {"week": 9, "titel": "Stakeholders", "tekst": "- INLEVEREN/MAKEN: kies een bestaand bedrijf/merk in je branche. Maak een stakeholderanalyse met minimaal vijf en maximaal tien stakeholders met een Power Interest Matrix.\n- Verwerk de analyse in een poster/moodboard en presenteer die aan de groep.\n- Neem de poster op in de eindpresentatie én het portfolio.\n- IN DE LES: bespreek belangen, invloed en hoe stakeholders samenwerken."}, {"week": 10, "titel": "Eindpresentatie", "tekst": "- Presenteer je brancheanalyse met de deelopdrachten: achtergrond/tijdlijn, PESTEL en verdieping, MVO, trends/visionboard, klantonderzoek, distributie, spelers/concurrentie en stakeholders.\n- De slides noemen minimaal 10 minuten voor de presentatie en dress for your branche.\n- Controleer vooraf het beoordelingskader op Blackboard.\n- DEADLINE-LET OP: MABU-slides noemen op verschillende plekken week 10 of week 11 voor presenteren en week 12 of de laatste zondag van het semester voor portfolio-inlevering. Controleer dus de exacte datum in Blackboard; de PowerPoints spreken elkaar hierover tegen."}, {"week": 11, "titel": "Portfolio en reflectie", "tekst": "- Werk het portfolio compleet af en schrijf een reflectie over de branche en de gebruikte theorie.\n- Controleer voorblad, inhoudsopgave, alle deelopdrachten, conclusie/reflectie, APA-bronnenlijst, bijlagen en presentatie.\n- De week-11-PowerPoint noemt presentatie in week 11 en portfolio inleveren voor 23:59 op de laatste zondag van het semester; week-10-slides noemen deels week 12. Controleer Blackboard voor de echte deadline."}]}, {"naam": "DATA DRIVEN DECISION MAKING (DDDM)", "intro": "Doorlopende taak: maak de DataCamp-modules die bij de lesstof horen. De stof uit DataCamp kan terugkomen op het individuele casetentamen (135 minuten). De slides noemen dat certificaten in week 11 in één keer naar Blackboard moeten worden geüpload. De modules zijn volgens de PowerPoints niet verplicht om aan het tentamen mee te doen, maar de stof is wel tentamenstof.", "weken": [{"week": 1, "titel": "Data literacy en managementinformatie", "tekst": "- INLEVEREN/MAKEN: DataCamp \"Introduction to Data Literacy\" (ongeveer 2 uur).\n- Optioneel: video over informatiebeheer.\n- Leer data, informatie, managementinformatie en de stappen verzamelen–verwerken–presenteren–analyseren."}, {"week": 2, "titel": "Excel basis", "tekst": "- Oefen Excel: werkmap/werkblad, cellen en verwijzingen, gegevens invoeren, tabellen, sorteren, filteren en basisformules.\n- INLEVEREN/MAKEN: rond DataCamp \"Introduction to Excel\" af. De week-2-slides zeggen dat ongeveer 2 uur resteert.\n- Optioneel: bekijk \"Excel Basics\"."}, {"week": 3, "titel": "Excel-functies en visualisaties", "tekst": "- Oefen SOM, GEMIDDELDE, MAX en MIN, celbereiken, grafieken en het kiezen/interpreteren van visualisaties.\n- INLEVEREN/MAKEN: rond DataCamp \"Data Visualization in Excel\" af; de slides noemen ongeveer 1 uur resterend.\n- Optioneel: bekijk \"Excel Charts\"."}, {"week": 4, "titel": "DIKW-model en data", "tekst": "- Oefen het model Data → Informatie → Kennis → Wijsheid en hoe Excel informatie helpt verwerken.\n- IN DE LES: groepsopdracht: kies een sector en werk een DIKW-piramide uit.\n- INLEVEREN/MAKEN: DataCamp \"Introduction to Data\" (ongeveer 2 uur resterend). Focus op context, datatypen en datakwaliteit."}, {"week": 5, "titel": "Data analyseren en presenteren", "tekst": "- Oefen een dataset analyseren, passende grafieken kiezen, trends/patronen/outliers herkennen, een conclusie formuleren en een onderbouwd advies geven.\n- IN DE LES: oefencases met datasets uit bijvoorbeeld reis- of hotelbranche; onderscheid conclusie (wat laat data zien?) en advies (wat moet er gebeuren?).\n- INLEVEREN/MAKEN: rond DataCamp \"Understanding Data Visualization\" af; de slides noemen ongeveer 2 uur resterend."}, {"week": 6, "titel": "Dataveiligheid en privacy", "tekst": "- Leer AVG/GDPR, persoonsgegevens, beveiliging, phishing, datalekken, cloudrisico's en des-/misinformatie.\n- INLEVEREN/MAKEN: DataCamp \"Introduction to Data Security\" (2 uur) en \"Understanding GDPR\" (1 uur).\n- IN DE LES: analyseer voorbeelden van misinformatie, desinformatie, malinformatie en hoaxes."}, {"week": 7, "titel": "Ethiek en digital danger", "tekst": "- Leer ethische dilemma's, algoritmische bias, deepfakes, fake news, manipulatie, filterbubbels en verantwoord AI-gebruik.\n- INLEVEREN/MAKEN: DataCamp \"Introduction to Data Ethics\" (1 uur).\n- IN DE LES: analyseer in een groep een ethische casus en beschrijf probleem, dilemma en mogelijke gevolgen."}, {"week": 8, "titel": "AI en ChatGPT", "tekst": "- Leer het verschil tussen AI, machine learning en large language models; bespreek toepassingen, kansen, beperkingen en risico's van ChatGPT/Copilot.\n- INLEVEREN/MAKEN: DataCamp \"Introduction to ChatGPT\" (1 uur)."}, {"week": 9, "titel": "Prompt engineering en APA", "tekst": "- Oefen prompts met duidelijk doel, context, specifieke instructies en gewenste output. Controleer AI-uitkomsten met betrouwbare bronnen.\n- INLEVEREN/MAKEN: rond DataCamp \"Understanding Prompt Engineering\" af (ongeveer 1 uur resterend).\n- Bestudeer de APA-wijzer en oefen in-text verwijzingen en literatuurlijst. De PowerPoint bevat een APA-oefentoets.\n- IN DE LES: verbeter een prompt en controleer een bewering die door AI wordt gedaan."}, {"week": 10, "titel": "AI en managementinformatie", "tekst": "- Leer hoe AI data kan helpen analyseren, voorspellen, dashboards maken en beslissingen ondersteunen; managers blijven verantwoordelijk.\n- IN DE LES: groepsopdracht om een AI-dashboard voor een sector te ontwerpen met KPI's en gewenste inzichten.\n- INLEVEREN/MAKEN: DataCamp \"Intermediate ChatGPT\" (ongeveer 1 uur resterend).\n- Herhaal alvast lesstof week 1–10 voor het tentamen."}, {"week": 11, "titel": "Herhaling en tentamenvoorbereiding", "tekst": "- Herhaal kernbegrippen en oefen met een casus op tentamenniveau.\n- Reflecteer op je digitale voetafdruk en schrijf drie concrete acties om die te verbeteren.\n- Stel vragen over onduidelijke stof; oefen onder meer AVG/GDPR, CIA-model, ethiek, AI, prompt engineering en APA.\n- Upload de behaalde DataCamp-certificaten in één keer naar Blackboard, zoals de week-1-slides aangeven.\n- Bereid je voor op het individuele casetentamen van 135 minuten."}]}, {"naam": "COMMUNICATION 1 (PCOM1Na)", "intro": "De PowerPoints hebben meestal twee blokken per week. Veel activiteiten zijn oefenen in de les; hieronder staan alleen expliciete producten, voorbereiding en belangrijke oefendoelen.", "weken": [{"week": 1, "titel": "Communicatiemodel en interview", "tekst": "- Leer het communicatiemodel van Shannon & Weaver, ruis en een pakkende opening.\n- IN DE LES: interview een medestudent en stel jezelf kort voor; oefen interviewen en feedback.\n- Geen aparte inleveropdracht voor thuis gevonden in de slides."}, {"week": 2, "titel": "Doel, doelgroep, AIDA en DISC", "tekst": "- Leer communicatiedoel, doelgroep, AIDA en gedragsstijlen.\n- IN DE LES: groeps-/papieren-torenopdracht en reflectie op samenwerken.\n- INLEVEREN/MAKEN: schrijf met AI een sollicitatiebrief voor een stage of bijbaan, gebruik AIDA en stuur die naar de docent. De slide laat het exacte deadlineveld leeg; hij zegt \"voor lesweek 3\"."}, {"week": 3, "titel": "LSD en interviewvaardigheden", "tekst": "- Oefen luisteren, samenvatten en doorvragen (LSD).\n- IN DE LES: interview een medestudent; gebruik opening–kern–afsluiting, verschillende soorten vragen en geef/ontvang feedback. Eén slide vraagt een interview voor de klas van ongeveer vijf minuten.\n- Geen aparte thuisopdracht aangetroffen."}, {"week": 4, "titel": "DISC en samenwerken", "tekst": "- Leer de DISC-stijlen en hoe je je communicatie op anderen afstemt.\n- IN DE LES: reflecteer op de papieren toren-opdracht uit week 2: eigen stijl, rollen, communicatie en wat beter kon.\n- Geen aparte inleveropdracht aangetroffen."}, {"week": 5, "titel": "Kernkwadranten en valkuilen", "tekst": "- Breng je kernkwaliteit, valkuil, uitdaging en allergie in kaart.\n- Oefen hoe kwaliteiten en valkuilen jouw communicatie en samenwerking beïnvloeden.\n- Geen aparte inleveropdracht aangetroffen."}, {"week": 6, "titel": "Non-verbaal gedrag, feedback en assertiviteit", "tekst": "- Leer non-verbale communicatie en het 4G-model voor concrete, respectvolle feedback.\n- Oefen feedback geven/ontvangen en assertief communiceren.\n- Geen aparte inleveropdracht aangetroffen."}, {"week": 7, "titel": "Johari Window, zelfbeeld en imago", "tekst": "- Leer de vier kwadranten van het Johari Window.\n- Vergelijk zelfbeeld en imago en gebruik feedback om je communicatie bewuster te maken.\n- Geen aparte inleveropdracht aangetroffen."}, {"week": 8, "titel": "Storytelling, CV en personal brand", "tekst": "- Maak/bewerk een basis-CV met storytelling en werk aan hoe je jezelf presenteert.\n- INLEVEREN/MAKEN: finaliseer CV en LinkedIn-profiel en neem die op in je portfolio.\n- VOORBEREIDEN VOOR WEEK 9: bestudeer Hofstede en DMIS, een krantenartikel over culturele verschillen in communicatie en bereid de casus voor een gesimuleerd overleg voor."}, {"week": 9, "titel": "Interculturele communicatie", "tekst": "- Leer culturele dimensies, je eigen culturele positie en hoe culturele vooroordelen communicatie beïnvloeden.\n- Bereid de gesimuleerde overlegcasus voor en bespreek respectvol communiceren met culturele/sociale verschillen.\n- Bereid de Roos van Leary voor week 10 voor.\n- Geen aparte schriftelijke inleveropdracht aangetroffen."}, {"week": 10, "titel": "Roos van Leary en beïnvloeden", "tekst": "- Leer de assen/posities van de Roos van Leary en hoe gedrag reacties oproept.\n- IN DE LES: oefen samenwerkings- en conflictsituaties, beïnvloeden en het doorbreken van patronen.\n- VOORBEREIDEN VOOR WEEK 11: bereid het individuele sollicitatiegesprek voor."}, {"week": 11, "titel": "Individueel sollicitatiegesprek", "tekst": "- Dit is een individueel sollicitatiegesprek van ongeveer 20 minuten; de PowerPoint noemt het een toets en een voorwaarde voor het rollenspel aan het einde van Communication 2.\n- Bereid een elevator pitch van 30–60 seconden, drie concrete STAR-voorbeelden, je DISC-kwaliteiten, professionele kleding, open houding/oogcontact/rustige stem en twee vragen aan de \"werkgever\" voor.\n- Oefen antwoorden met Situatie, Taak, Actie en Resultaat; besteed vooral aandacht aan je acties en het resultaat."}]}, {"naam": "MANAGING THE BUSINESS", "intro": "De lesplanning in de PowerPoints noemt een doorlopende individuele eindpresentatie over een zelfgekozen organisatie, opgebouwd met wekelijkse portfolio-onderdelen. Gebruik betrouwbare bronnen en APA. Ook wordt regelmatig \"Nieuws van de week\" voorbereid. De slides verschillen soms tussen blok A en B; controleer specifieke lesinstructies van de docent.", "weken": [{"week": 1, "titel": "Introductie Business Management", "tekst": "- Kies een bestaande organisatie (Nederlands of internationaal) voor je doorlopende portfolio.\n- INLEVEREN/MAKEN: maak een introductieposter over de organisatie: geschiedenis, achtergrond, concurrenten en waarom je er wel/niet zou willen werken.\n- Zet een bronvermelding in APA; gebruik Canva of een andere tool.\n- Bereid een actueel nieuwsitem voor de rubriek Nieuws van de week."}, {"week": 2, "titel": "Auto & transport", "tekst": "- Onderzoek een organisatie in de auto-/transportsector en kijk naar de organisatie met alle vijf zintuigen.\n- INLEVEREN/MAKEN: bezoek bijvoorbeeld een showroom of maak een trein-/busreis. Maak een creatieve socialmediapost waarin elk zintuig op een aparte slide/foto wordt verbeeld.\n- Bereid een actueel branchebericht voor."}, {"week": 3, "titel": "Organisatiekunde in Interior & Design", "tekst": "- Leer organisatiekunde en maak een eenvoudige analyse van een organisatie in Interior & Design; de slides noemen voorbeelden als MVRDV en Gensler.\n- Verbind organisatorische elementen en theorie aan je gekozen organisatie en leg uit wat dit betekent voor hoe de organisatie werkt.\n- Voeg de analyse en bronnen toe aan de eindpresentatie/portfolio.\n- De PowerPoint benadrukt onderzoek en presenteren; controleer in Blackboard of er een aparte vorm/woordlimiet is opgegeven."}, {"week": 4, "titel": "Supply Chain Management in retail & handel", "tekst": "- Kies een retailer en onderzoek online én tijdens een bezoek hoe die organisatie in een supply chain zit.\n- INLEVEREN/MAKEN: verslag van 300–400 woorden over schakels, knelpunten en kansen; voeg foto's toe en verwerk het in de eindpresentatie.\n- In de les wordt ook geoefend met een retail/supply-chain-analyse."}, {"week": 5, "titel": "Culture & conduct in de energiesector", "tekst": "- Bestudeer de opgegeven literatuur over organisatiecultuur en energietransities; bereid een actueel nieuwsitem voor.\n- Werk het portfolio-onderdeel over cultuur/gedrag van een organisatie uit de energiesector uit, met bronnen en theorie.\n- Ga na in Blackboard of er voor dit onderdeel een apart ingeleverd product is; de gevonden slides benoemen vooral bedrijfsbezoek, theorie en praktijkoefeningen."}, {"week": 6, "titel": "Global HRM in Tech & ICT", "tekst": "- Onderzoek hoe een organisatie in Tech/ICT met HR-beleid omgaat; gebruik bijvoorbeeld vacaturesites, LinkedIn of persberichten.\n- INLEVEREN/MAKEN: schrijf een verslag over het HR-beleid en de waarden die je terugziet; verwerk dit in de eindpresentatie.\n- Bereid nieuws van de week en de volgende portfolio-opdracht voor."}, {"week": 7, "titel": "Change Consulting in Gezondheidszorg & Farmacie", "tekst": "- Leer change consulting: diagnose, interventie en borging; bestudeer voorbeelden in zorg/farmacie.\n- Werk het portfolio-onderdeel uit over hoe organisatieverandering wordt aangepakt; onderbouw met voorbeelden en bronnen.\n- Bereid een actuele stelling/nieuwsitem voor. De slides noemen een podcast als toepassing in blok 2; controleer de precieze opdrachtinstructie in Blackboard."}, {"week": 8, "titel": "Duurzaamheid en innovatie in agrarische/voedselproductie", "tekst": "- Onderzoek duurzaamheid, innovatie en trends in de agrarische/voedselproductie.\n- Werk het portfolio-onderdeel uit en koppel de inzichten aan een organisatie met bronnen/theorie.\n- De weekindeling noemt een podcast in de toepassingen van blok 2; controleer Blackboard voor onderwerp, lengte en inlevervorm."}, {"week": 9, "titel": "Trends in financiële dienstverlening", "tekst": "- Onderzoek belangrijke trends/ontwikkelingen in een organisatie uit financiële dienstverlening.\n- Voeg analyse, actuele voorbeelden, nieuwsitem en APA-bronnen toe aan het portfolio/eindpresentatie.\n- Bereid de eindpresentatie voor; de PowerPoint zegt expliciet: portfolio-opdracht maken en eindpresentatie voorbereiden."}, {"week": 10, "titel": "Eindpresentaties", "tekst": "- Presenteer de organisatieanalyse en portfolio-onderdelen; volg de opgegeven tijd en beoordelingscriteria uit de les/Blackboard.\n- Stel kritische vragen en luister actief naar presentaties van medestudenten.\n- Week 11 bevat ook eindpresentaties, dus controleer welk moment voor Jort geldt."}, {"week": 11, "titel": "Eindpresentaties", "tekst": "- Als je nog niet hebt gepresenteerd: houd je eindpresentatie en verwerk eventuele feedback.\n- Controleer dat je portfolio compleet is en dat theorieën/modellen zijn toegepast op je gekozen organisatie.\n- Controleer Blackboard voor exacte inleverdeadline; de slides noemen week 10 én week 11 als presentatiemomenten."}]}, {"naam": "MARKETING", "intro": "Hoofdlijnen uit de week-PowerPoints. Werk doorlopend met de zelfgekozen organisatie/cases. De PowerPoints bevatten veel korte groepsopdrachten; die zijn lesoefeningen en niet automatisch afzonderlijke inleveropdrachten. De toetsomschrijving uit de cursusinformatie noemt een individueel casetentamen van 135 minuten. Het boek is Tuten (2025), Principles of Marketing for a Digital Age, 3e editie.", "weken": [{"week": 1, "titel": "Introductie Marketing", "tekst": "- Leer wat marketing, klantwaarde, behoeften en markten zijn; begrijp hoe marketing bijdraagt aan organisatiedoelen.\n- Kies/gebruik een organisatie om voorbeelden aan te koppelen.\n- Bereid je voor op de lessen door de opgegeven PowerPoint/hoofdstukken te lezen; geen aparte thuisinlevering duidelijk aangetroffen."}, {"week": 2, "titel": "Koopgedrag en customer journey", "tekst": "- Leer het aankoopbeslissingsproces en de digitale customer journey; onderscheid consumentengedrag (B2C) en zakelijk koopgedrag (B2B).\n- IN DE LES: analyseer touchpoints, reviews en informatiezoekgedrag.\n- Voorbereiding: bestudeer de PowerPoint van week 3A."}, {"week": 3, "titel": "Marketingomgeving en SWOT", "tekst": "- Leer de micro-, meso- en macro-omgeving en de PESTEL-factoren.\n- IN DE LES: werk cases uit en maak een SWOT-analyse voor de organisatie uit de casus.\n- Voorbereiding: bestudeer hoofdstuk 5 \"Marketing Strategy\"."}, {"week": 4, "titel": "Segmentatie, targeting en positionering (STP)", "tekst": "- Leer segmentatiecriteria, doelgroepkeuze, positionering en USP's.\n- IN DE LES: maak een positioneringskaart voor de energiedrankenmarkt met prijs (laag–hoog) en doelgroep (breed–niche).\n- Voorbereiding: bestudeer hoofdstuk 6 \"Creating Value: Products and Services\"; focus op productlevenscyclus en productniveaus."}, {"week": 5, "titel": "Product en innovatie", "tekst": "- Leer productniveaus, productportfolio, innovatie, productontwikkeling en productlevenscyclus.\n- IN DE LES: werk casus LW05a uit.\n- Voorbereiding: bestudeer hoofdstuk 7 \"Offering Value: Price\" en bedenk welke prijsstrategie je gekozen organisatie gebruikt."}, {"week": 6, "titel": "Prijs", "tekst": "- Leer prijsdoelen, prijsstrategieën, prijstactieken, prijselasticiteit en hoe prijs de klantwaarde/positionering beïnvloedt.\n- IN DE LES: werk cases LW06a en LW06b uit.\n- Voorbereiding: bestudeer hoofdstuk 8 \"Distributing Value: Place\"."}, {"week": 7, "titel": "Distributie", "tekst": "- Leer directe en indirecte distributie, distributiekanalen en digitale verkoop; begrijp multichannel versus omnichannel.\n- IN DE LES: bespreek hoe distributiekeuzes bereik, gemak en klantbeleving beïnvloeden.\n- Geen aparte individuele inleveropdracht duidelijk vermeld in de bekeken weekslides."}, {"week": 8, "titel": "Promotie en marketingcommunicatie", "tekst": "- Leer de promotional mix en integrated marketing communication; koppel communicatie aan klantwaarde en consistente merkboodschappen.\n- Oefen het vergelijken van communicatie-instrumenten en het onderbouwen van een keuze met een voorbeeld.\n- Geen aparte individuele huiswerkdeadline duidelijk aangetroffen."}, {"week": 9, "titel": "Branding en merkwaarde", "tekst": "- Leer brand equity en het CBBE-model van Keller.\n- IN DE LES: pas het model toe op de GreenRide-case en werk de casus van week 9B uit.\n- Voorbereiding: bestudeer hoofdstuk 12 \"Managing Value: Analytics and Marketing Performance Measurement\" en hoofdstuk 5 \"Marketing Strategy\"."}, {"week": 10, "titel": "Marketingstrategie en budget", "tekst": "- Leer marketingstrategie, groeikeuzes (Ansoff), marketingmix en budget/KPI's.\n- IN DE LES: werk de GreenRide-case uit: kies een passende Ansoff-strategie, koppel de marketingmix, kies een budgetmethode voor €30.000, verdeel het budget en bepaal KPI's om ROI te meten.\n- VOORBEREIDEN: maak de groeps-eindpresentatie/marketingplan. Verplichte onderdelen in de slide: situatieanalyse, STP, marketingmix (7P's), SMART-doelen. Presentatieduur: 13 minuten per groep."}, {"week": 11, "titel": "Eindpresentatie en herhaling", "tekst": "- Rond de groepspresentatie/het marketingplan af en presenteer volgens de afgesproken indeling en beoordeling.\n- Herhaal de kernstof en bereid je voor op het casetentamen.\n- Controleer Blackboard voor exacte toetsdatum en eventuele inleveringen."}]}], "voortgang": "DIE JORT EERDER HEEFT GENOEMD\nGebruik dit alleen als het nog klopt; vraag niet opnieuw naar informatie die al eerder is gegeven, maar controleer zo nodig of iets inmiddels af is:\n- DDDM: Jort zei dat \"Introduction to Data Literacy\" af is.\n- DDDM: voor week 4 werd \"Introduction to Data\" nog als resterend DataCamp-werk genoemd.\n- MABU: Jort werkte aan brancheonderzoek rond Digital Business & Generative AI; voor de verdiepingsopdracht van week 3 koos hij KPN.\n- Communication: Jort heeft aan een DISC-profiel/reflectie gewerkt.\n- Engels: Jort koos bol.com voor een presentatie; de beschikbare bol.com-PowerPoint is een eigen presentatie, niet een compleet weekprogramma."};
+
+const AGENTS = [
+  { id: "denker", naam: "Denker", mono: "De", rol: "Leest de opdracht, maakt het plan en later je spiekbrief" },
+  { id: "creatief", naam: "Creatief", mono: "Cr", rol: "Bedenkt een sterke opening, ideeën en beelden" },
+  { id: "rekenaar", naam: "Rekenaar", mono: "Re", rol: "Doet het rekenwerk en checkt cijfers" },
+  { id: "schrijver", naam: "Schrijver", mono: "Sc", rol: "Schrijft de opdracht helemaal uit" },
+  { id: "taal", naam: "Taal", mono: "Ta", rol: "Verbetert spelling, zinnen en woordkeuze" },
+  { id: "stijl", naam: "Jort-check", mono: "Jo", rol: "Checkt of het klinkt alsof jij het schreef" },
+  { id: "controleur", naam: "Controleur", mono: "Co", rol: "Checkt alle eisen, woorden en bronnen" },
+  { id: "ppt", naam: "PowerPoint", mono: "PP", rol: "Maakt de dia's en de spreektekst" },
+];
+
+const REGELS = `Regels voor alles wat je schrijft:
+- Duidelijk Nederlands met korte zinnen. Geen moeilijke of AI-achtige woorden of zinnen, zoals: cruciaal, essentieel, naadloos, robuust, baanbrekend, "in het huidige digitale landschap", "een wereld van mogelijkheden", "speelt een sleutelrol", "het is belangrijk om te benadrukken", "kortom". Geen gedachtestreepjes als stijlmiddel.
+- Verzin geen bronnen, cijfers, citaten, bedrijfsbezoeken of persoonlijke ervaringen. Je kunt niet op internet zoeken.
+- Gebruik alleen bronnen uit het lesmateriaal van Jort. Is er voor een bewering een bron nodig die er niet is, zet dan [BRON ZOEKEN: waarover].
+- Waar iets van Jort zelf nodig is (eigen ervaring, foto, bezoek, mening die alleen hij kan geven), zet [VUL IN: wat er moet komen].
+- Bronnen in APA 7.`;
+
+const $ = (s) => document.querySelector(s);
+const opslaan = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)) } catch (e) {} };
+const laden = (k) => { try { return JSON.parse(localStorage.getItem(k)) } catch (e) { return null } };
+
+/* ---------- formulier ---------- */
+const vakSel = $("#vak"), weekSel = $("#week");
+const kortVak = (n) => n.replace(/\s*\(.*\)/, "").replace(/\b(\w)(\w*)/g, (m, a, b) => a + b.toLowerCase());
+OVERZICHT.vakken.forEach((v, i) => vakSel.add(new Option(kortVak(v.naam) + (v.naam.match(/\((.*)\)/) ? ` (${v.naam.match(/\((.*)\)/)[1]})` : ""), i)));
+vakSel.add(new Option("Ander vak of eigen opdracht", "x"));
+function vulWeken() {
+  weekSel.innerHTML = "";
+  const v = OVERZICHT.vakken[vakSel.value];
+  if (!v) { weekSel.add(new Option("—", "")); weekSel.disabled = true; return }
+  weekSel.disabled = false;
+  v.weken.forEach((w, i) => weekSel.add(new Option(`Week ${w.week}: ${w.titel}`, i)));
+}
+function vulOpdracht() {
+  const v = OVERZICHT.vakken[vakSel.value];
+  const w = v && v.weken[weekSel.value];
+  $("#opdracht").value = w ? w.tekst.replace(/\n?PERSOONLIJKE VOORTGANG[\s\S]*/, "").trim() : "";
+}
+vakSel.onchange = () => { vulWeken(); vulOpdracht() };
+weekSel.onchange = vulOpdracht;
+vakSel.value = "0"; vulWeken(); weekSel.value = "1"; vulOpdracht();
+const stijlOud = laden("ot-stijl"); if (stijlOud) $("#stijl").value = stijlOud;
+$("#stijl").addEventListener("change", () => opslaan("ot-stijl", $("#stijl").value));
+
+/* ---------- team-tegels ---------- */
+$("#team").innerHTML = AGENTS.map((a) => `
+  <article class="agent" id="ag-${a.id}" data-s="wacht">
+    <div class="mono" aria-hidden="true">${a.mono}</div>
+    <h3>${a.naam} <span class="chip">wacht</span></h3>
+    <p class="rol">${a.rol}</p>
+    <p class="live"></p>
+  </article>`).join("");
+function zet(id, s, live) {
+  const el = $("#ag-" + id);
+  el.dataset.s = s;
+  el.querySelector(".chip").textContent = s;
+  if (live !== undefined) el.querySelector(".live").textContent = live;
+}
+
+/* ---------- Claude ---------- */
+let sample = null, downloads = null, kanTools = false, kanBeeld = false, ctl = null;
+const FOUTEN = {
+  not_granted: "Je hebt deze pagina geen toestemming gegeven om Claude te gebruiken. Herlaad de pagina om het opnieuw te proberen.",
+  sampling_disabled: "Claude is niet beschikbaar voor dit account.",
+  rate_limited: "Even te veel tegelijk, of je gebruikslimiet is bereikt. Probeer het over een paar minuten opnieuw.",
+  session_expired: "Je bent uitgelogd. Log opnieuw in bij Claude en herlaad de pagina.",
+  refused: "Claude wilde dit stuk niet maken. Pas de opdracht aan en probeer opnieuw.",
+  invalid_json: "Een antwoord kwam in de verkeerde vorm terug. Probeer het nog een keer.",
+  prompt_too_large: "Het lesmateriaal is te lang. Plak een kortere versie.",
+  cancelled: "Gestopt.",
+};
+const foutTekst = (e) => FOUTEN[e && e.code] || "Er ging iets mis met de verbinding. Probeer het nog een keer.";
+
+(async () => {
+  const st = $("#status-pagina");
+  if (!window.claude) { st.textContent = "Open deze pagina in Claude om het team te laten werken."; return }
+  [sample, downloads] = await Promise.all([claude.use("sample"), claude.use("downloads")]);
+  if (!sample) { st.textContent = "Het team kan hier geen Claude gebruiken. Open de pagina in de Claude-app of op claude.ai."; return }
+  const lim = await sample.limits().catch(() => null);
+  kanTools = !!(lim && lim.tools); kanBeeld = !!(lim && lim.images);
+  $("#beeld-veld").hidden = !kanBeeld;
+  st.textContent = "Het team gebruikt je eigen Claude-account. Een opdracht duurt een paar minuten.";
+  $("#start").disabled = false;
+  toonBestanden();
+})();
+
+const knip = (t) => t.replace(/\s+/g, " ").slice(-150);
+async function vraag(id, prompt, opts = {}) {
+  zet(id, "bezig", "Denkt na…");
+  const o = { signal: ctl.signal, modelTier: opts.tier || "default", onText: ({ text }) => zet(id, "bezig", knip(text)) };
+  if (opts.images) o.images = opts.images;
+  if (opts.tools) o.tools = opts.tools; else o.cache = false;
+  try {
+    const r = opts.json ? await sample.json(prompt, o) : (await sample(prompt, o)).text;
+    zet(id, "klaar", opts.klaar || "Klaar");
+    return r;
+  } catch (e) {
+    zet(id, e.code === "cancelled" ? "wacht" : "fout", e.code === "cancelled" ? "" : foutTekst(e));
+    throw e;
+  }
+}
+const deel = (tekst, tag) => { const m = tekst.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`)); return m ? m[1].trim() : "" };
+const telWoorden = (md) => md.split(/\n#+\s*(Bronnen|Bronnenlijst|Literatuurlijst)\b/i)[0].replace(/[#*_>\[\]()`|-]/g, " ").split(/\s+/).filter(Boolean).length;
+
+/* ---------- de samenwerking ---------- */
+let R = laden("ot-laatste") || null;
+
+$("#form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  if (!sample) return;
+  const v = OVERZICHT.vakken[vakSel.value], w = v && v.weken[weekSel.value];
+  const ctx = `Over de student: Jort, eerstejaars Tio (hbo), schooljaar 2026-2027, specialisatie Digital Business & Generative AI.
+Wat Jort eerder koos of deed: ${OVERZICHT.voortgang}
+
+Vak: ${v ? v.naam : "anders"}${w ? `, week ${w.week}: ${w.titel}` : ""}
+${v ? "Over dit vak: " + v.intro : ""}
+
+OPDRACHT:
+${$("#opdracht").value.trim()}
+
+WENSEN VAN JORT: ${$("#wensen").value.trim() || "geen"}
+
+LESMATERIAAL EN BRONNEN VAN JORT:
+${$("#materiaal").value.trim().slice(0, 60000) || "(geen aangeleverd)"}`;
+  const stijl = $("#stijl").value.trim().slice(0, 8000);
+  opslaan("ot-stijl", stijl);
+  const beelden = kanBeeld && $("#beelden").files.length ? $("#beelden").files : null;
+
+  ctl = new AbortController();
+  $("#start").disabled = true; $("#stop").hidden = false;
+  AGENTS.forEach((a) => zet(a.id, "wacht", ""));
+  const ronde = $("#ronde");
+  const r = { vak: v ? kortVak(v.naam) : "Opdracht", week: w ? w.week : null, titel: w ? w.titel : "Opdracht" };
+  try {
+    ronde.textContent = "Plan maken";
+    const plan = await vraag("denker", `Je bent de Denker in een team van AI-collega's dat een schoolopdracht voor Jort maakt. Lees de opdracht goed en maak het plan.
+${ctx}
+
+Antwoord alleen met JSON in deze vorm:
+{"samenvatting": "wat er gevraagd wordt in 2 zinnen",
+ "product": "wat er ingeleverd moet worden (tekst, LinkedIn-post, podcastscript, brief, analyse, poster-tekst ...)",
+ "eisen": ["elke harde eis: woordaantal, onderdelen, bronnen, vorm"],
+ "woordlimiet": 500 of null,
+ "presentatieMinuten": 5 of null,
+ "onderdelen": [{"kop": "kopje", "inhoud": "wat erin moet"}],
+ "aanpak": "hoe het team dit het best aanpakt",
+ "rekenwerk": true of false,
+ "rekenvragen": ["wat de Rekenaar moet uitrekenen"],
+ "zelfDoen": ["wat Jort echt zelf moet doen, zoals foto's maken, iets opnemen, een bezoek of uploaden"]}`, { json: true, images: beelden, tier: "complex", klaar: "Plan klaar" });
+    zet("denker", "klaar", plan.samenvatting || "Plan klaar");
+
+    ronde.textContent = "Ideeën en rekenwerk";
+    const planTekst = JSON.stringify(plan, null, 1);
+    const creatiefP = vraag("creatief", `Je bent Creatief in een team dat een schoolopdracht voor Jort maakt. Bedenk wat de opdracht sterk en anders maakt, maar blijf bij de feiten.
+${ctx}
+
+PLAN VAN DE DENKER:
+${planTekst}
+
+${REGELS}
+
+Antwoord alleen met JSON:
+{"titel": "pakkende titel", "opening": "een sterke eerste zin of vraag", "ideeen": ["4 tot 6 ideeën om de opdracht beter te maken"], "voorbeelden": ["concrete voorbeelden uit de branche die je zeker weet"], "beeld": ["ideeën voor afbeeldingen, schema's of de opbouw van een visual"]}`, { json: true, klaar: "Ideeën klaar" });
+    let rekenP;
+    if (plan.rekenwerk) {
+      const reken = { name: "reken", description: "Rekent een som exact uit. Gebruik + - * / ^ ( ) en punten voor decimalen. Geeft de uitkomst terug.",
+        inputSchema: { type: "object", properties: { som: { type: "string", description: "bijv. (30000*0.25)/12" } }, required: ["som"] },
+        execute: ({ som }) => {
+          const s = String(som).replace(/\s/g, "").replace(/\^/g, "**");
+          if (!/^[0-9+\-*/().%]+$/.test(s.replace(/\*\*/g, "*"))) throw new Error("Alleen cijfers en + - * / ^ ( ) zijn toegestaan.");
+          const uit = Function(`"use strict";return (${s})`)();
+          if (!isFinite(uit)) throw new Error("Geen geldige uitkomst.");
+          zet("rekenaar", "bezig", `${som} = ${+uit.toFixed(6)}`);
+          return String(+uit.toFixed(6));
+        } };
+      rekenP = vraag("rekenaar", `Je bent de Rekenaar in een team dat een schoolopdracht voor Jort maakt. Doe het rekenwerk dat nodig is.
+${ctx}
+
+REKENVRAGEN VAN DE DENKER:
+${(plan.rekenvragen || []).map((q) => "- " + q).join("\n")}
+
+${kanTools ? "Gebruik voor elke berekening het hulpmiddel reken, zodat de uitkomst klopt." : "Reken heel precies en laat elke tussenstap zien."}
+Gebruik alleen cijfers uit de opdracht of het lesmateriaal. Ontbreekt een cijfer, zeg dat en verzin het niet.
+Geef je antwoord als korte lijst: per vraag de berekening, de uitkomst en wat die betekent, in gewone taal.`, { tools: kanTools ? [reken] : undefined, klaar: "Berekeningen klaar" });
+    } else { zet("rekenaar", "overgeslagen", "Geen rekenwerk nodig bij deze opdracht"); rekenP = Promise.resolve("") }
+    const [creatief, berekening] = await Promise.all([creatiefP, rekenP]);
+
+    ronde.textContent = "Schrijven";
+    const schrijfOpdracht = (extra) => `Je bent de Schrijver in een team dat een schoolopdracht voor Jort maakt. Schrijf het eindproduct helemaal uit, klaar om in te leveren.
+${ctx}
+
+PLAN VAN DE DENKER:
+${planTekst}
+
+IDEEËN VAN CREATIEF:
+${JSON.stringify(creatief, null, 1)}
+
+${berekening ? "BEREKENINGEN VAN DE REKENAAR:\n" + berekening + "\n" : ""}
+${REGELS}
+- Houd je aan het woordaantal${plan.woordlimiet ? ` (maximaal ${plan.woordlimiet} woorden, de bronnenlijst telt niet mee)` : ""}.
+- Schrijf in de ik-vorm van Jort waar dat bij de opdracht past.
+${extra || ""}
+Schrijf alleen het eindproduct in Markdown: een titel met #, kopjes met ##, en onderaan ## Bronnen met de APA-lijst. Geen uitleg ervoor of erna.`;
+    let tekst = await vraag("schrijver", schrijfOpdracht(), { klaar: "Eerste versie klaar" });
+
+    ronde.textContent = "Taal verbeteren";
+    const taalUit = await vraag("taal", `Je bent de taalexpert in een team dat een schoolopdracht voor Jort maakt. Verbeter de tekst hieronder.
+Let op spelling, grammatica, d/t, interpunctie, lange zinnen (maak ze korter) en AI-achtige woorden.
+${REGELS}
+Verander de inhoud, de bronnen en de [VUL IN]- en [BRON ZOEKEN]-plekken niet. Houd de Markdown-opmaak.
+
+TEKST:
+${tekst}
+
+Antwoord precies in deze vorm:
+<tekst>
+de verbeterde tekst in Markdown
+</tekst>
+<wijzigingen>
+- de belangrijkste verbeteringen, maximaal 8, kort
+</wijzigingen>`, { klaar: "Taal verbeterd" });
+    tekst = deel(taalUit, "tekst") || tekst;
+    r.taal = deel(taalUit, "wijzigingen");
+
+    ronde.textContent = "Jort-check";
+    const stijlUit = await vraag("stijl", `Je bent de Jort-check in een team dat een schoolopdracht voor Jort maakt. Jij checkt of de tekst klinkt alsof Jort hem zelf heeft geschreven: een eerstejaars hbo-student die duidelijk, eenvoudig en een beetje persoonlijk schrijft, zonder dure woorden.
+${stijl ? "Hieronder staat een tekst die Jort zelf schreef. Neem zijn woordkeus, zinslengte en toon over:\n<<<\n" + stijl + "\n>>>" : "Er is geen voorbeeldtekst van Jort. Ga uit van een gewone eerstejaars hbo-student."}
+
+Pas alleen woordkeus, zinsbouw en toon aan. Verander de inhoud, de feiten, de bronnen en de [VUL IN]- en [BRON ZOEKEN]-plekken niet. Houd het woordaantal ongeveer gelijk en houd de Markdown-opmaak.
+${REGELS}
+
+TEKST:
+${tekst}
+
+Antwoord precies in deze vorm:
+<score>cijfer van 1 tot 10: hoe goed de tekst NA jouw aanpassing bij Jort past</score>
+<voor>cijfer van 1 tot 10: hoe goed de tekst VOOR jouw aanpassing bij Jort paste</voor>
+<uitleg>
+- wat je hebt aangepast en wat Jort zelf nog kan doen om het meer van hem te maken, maximaal 6 punten
+</uitleg>
+<tekst>
+de aangepaste tekst in Markdown
+</tekst>`, { klaar: "Klinkt als Jort" });
+    tekst = deel(stijlUit, "tekst") || tekst;
+    r.stijl = { score: deel(stijlUit, "score"), voor: deel(stijlUit, "voor"), uitleg: deel(stijlUit, "uitleg") };
+    zet("stijl", "klaar", `Past bij Jort: ${r.stijl.voor || "?"} → ${r.stijl.score || "?"} van 10`);
+
+    const controleer = (t, n) => vraag("controleur", `Je bent de Controleur in een team dat een schoolopdracht voor Jort maakt. Check streng of de tekst voldoet aan de opdracht.
+${ctx}
+
+EISEN VOLGENS DE DENKER:
+${(plan.eisen || []).map((e) => "- " + e).join("\n")}
+Woordlimiet: ${plan.woordlimiet || "geen"}. Getelde woorden (zonder bronnenlijst): ${telWoorden(t)}.
+
+TEKST:
+${t}
+
+Check ook: kloppen de feiten, staan er verzonnen of onvolledige bronnen in, staat elke bron in de tekst ook in de lijst, en zijn er nog AI-achtige woorden?
+Antwoord alleen met JSON:
+{"oordeel": "goed" of "verbeteren", "eisen": [{"eis": "...", "ok": true, "toelichting": "kort"}], "bronnen": "korte check van de bronnen", "verbeterpunten": ["wat de Schrijver precies moet aanpassen; leeg als het goed is"]}`, { json: true, klaar: n === 1 ? "Gecheckt" : "Eindcheck klaar" });
+
+    ronde.textContent = "Controle";
+    let controle = await controleer(tekst, 1);
+    const fouten = (controle.verbeterpunten || []).filter(Boolean);
+    if (controle.oordeel === "verbeteren" && fouten.length) {
+      zet("controleur", "klaar", `${fouten.length} verbeterpunten naar de Schrijver`);
+      ronde.textContent = "Ronde 2: verbeteren";
+      tekst = await vraag("schrijver", schrijfOpdracht(`
+Dit is de vorige versie:
+<<<
+${tekst}
+>>>
+De Controleur vond deze punten. Los ze allemaal op en houd de rest (ook de toon en stijl) zo veel mogelijk gelijk:
+${fouten.map((f) => "- " + f).join("\n")}`), { klaar: "Verbeterde versie klaar" });
+      ronde.textContent = "Eindcontrole";
+      controle = await controleer(tekst, 2);
+    }
+    r.controle = controle; r.tekst = tekst; r.woorden = telWoorden(tekst); r.woordlimiet = plan.woordlimiet;
+    toonResultaat(r);
+
+    ronde.textContent = "PowerPoint maken";
+    const minuten = plan.presentatieMinuten || 5;
+    const deck = await vraag("ppt", `Je bent de PowerPoint-maker in een team dat een schoolopdracht voor Jort maakt. Maak een presentatie van ongeveer ${minuten} minuten over de uitgewerkte opdracht hieronder, plus precies wat Jort per dia zegt.
+${ctx}
+
+UITGEWERKTE OPDRACHT:
+${tekst}
+
+Regels voor de dia's:
+- Ongeveer 1 dia per minuut, plus titel, bronnen en afsluiting. Wissel de types af.
+- Weinig tekst op een dia: maximaal 5 korte punten, een kaart heeft maximaal 20 woorden.
+- In "notities" staat de spreektekst: wat Jort letterlijk zegt, in spreektaal, in de ik-vorm. Samen ongeveer ${minuten * 130} woorden.
+- Zet geen feiten of bronnen in de dia's die niet in de uitgewerkte opdracht staan. [VUL IN]-plekken mag je overnemen.
+${REGELS}
+
+Slidetypes (veld "type"):
+titel {titel, ondertitel} · punten {titel, punten:[..], kern} · kaarten {titel, kaarten:[{letter?, kop, tekst}]} (2-6 kaarten) · tijdlijn {titel, stappen:[{jaar, tekst}]} (3-6) · matrix {titel, assen?:[x-as, y-as], vakken:[{kop, punten:[..]}] precies 4} · getal {titel, getal, label, tekst, bron?} · stelling {tekst, door?} · afbeelding {titel, afbeelding: "beschrijving van de foto die Jort moet invoegen", tekst?} · bronnen {bronnen:[..]} · afsluiting {titel, punten?}
+Elke dia krijgt ook "notities".
+
+Antwoord alleen met JSON:
+{"titel": "...", "thema": "digitaal" | "zakelijk" | "groen" | "energiek", "slides": [ ... ]}`, { json: true, klaar: "Dia's klaar" });
+    r.deck = deck;
+    zet("ppt", "klaar", `${(deck.slides || []).length} dia's met spreektekst`);
+    toonResultaat(r);
+
+    ronde.textContent = "Spiekbrief";
+    r.spiek = await vraag("denker", `Je bent de Denker in een team dat een schoolopdracht voor Jort heeft gemaakt. Maak nu een spiekbrief: wat Jort moet weten om de opdracht te snappen, te presenteren en vragen te beantwoorden.
+${ctx}
+
+UITGEWERKTE OPDRACHT:
+${tekst}
+
+DINGEN DIE JORT ZELF MOET DOEN VOLGENS HET PLAN:
+${(plan.zelfDoen || []).map((z) => "- " + z).join("\n") || "- geen"}
+
+${REGELS}
+Schrijf in Markdown met precies deze kopjes:
+## De kern in 3 zinnen
+## Begrippen die je moet kennen (begrip + uitleg in 1 zin, in een tabel)
+## 5 vragen die je kunt krijgen (vraag + kort antwoord)
+## Dit moet je nog zelf doen (checklist met - [ ], ook elke [VUL IN] en [BRON ZOEKEN] uit de tekst)`, { klaar: "Spiekbrief klaar" });
+    zet("denker", "klaar", "Plan en spiekbrief klaar");
+    ronde.textContent = "Klaar";
+    toonResultaat(r);
+  } catch (e) {
+    ronde.textContent = e.code === "cancelled" ? "Gestopt" : "Er ging iets mis";
+    $("#status-pagina").textContent = foutTekst(e);
+    $("#status-pagina").classList.toggle("err", e.code !== "cancelled");
+    if (r.tekst) toonResultaat(r);
+  } finally {
+    $("#start").disabled = false; $("#stop").hidden = true;
+  }
+});
+$("#stop").onclick = () => ctl && ctl.abort();
+
+/* ---------- resultaat tonen ---------- */
+const md = (t) => DOMPurify.sanitize(marked.parse(t || "")).replace(/\[(VUL IN|BRON ZOEKEN):([^\]]*)\]/g, '<span class="gat">[$1:$2]</span>');
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function spreektekst(r) {
+  if (!r.deck || !r.deck.slides) return "";
+  const s = r.deck.slides;
+  const woorden = s.map((d) => (d.notities || "").split(/\s+/).filter(Boolean).length);
+  const totaal = woorden.reduce((a, b) => a + b, 0);
+  return `# Wat je zegt: ${r.deck.titel || r.titel}\n\nTotaal ongeveer ${Math.max(1, Math.round(totaal / 130))} minuten (${totaal} woorden).\n\n` +
+    s.map((d, i) => `### Dia ${i + 1}: ${d.titel || d.tekst || d.type} (± ${Math.max(10, Math.round(woorden[i] / 130 * 60))} sec)\n\n${d.notities || "_Geen tekst. Ga door naar de volgende dia._"}`).join("\n\n");
+}
+function toonResultaat(r) {
+  R = r; if (r.tekst) opslaan("ot-laatste", r);
+  $("#p-opdracht").innerHTML = r.tekst ? md(r.tekst) : leeg("opdracht");
+  $("#p-spreek").innerHTML = r.deck ? md(spreektekst(r)) : leeg("spreektekst");
+  $("#p-spiek").innerHTML = r.spiek ? md(r.spiek) : leeg("spiekbrief");
+  $("#p-ppt").innerHTML = r.deck ? `<div class="slides">${r.deck.slides.map(diaPreview).join("")}</div>` : leeg("PowerPoint");
+  const c = r.controle;
+  $("#p-controle").innerHTML = c ? `
+    <div class="stats">
+      <div class="stat"><b>${c.oordeel === "goed" ? "Goed" : "Let op"}</b><span>Oordeel Controleur</span></div>
+      <div class="stat"><b>${r.woorden}${r.woordlimiet ? " / " + r.woordlimiet : ""}</b><span>Woorden zonder bronnen</span></div>
+      <div class="stat"><b>${esc(r.stijl && r.stijl.score || "?")}/10</b><span>Klinkt als Jort (was ${esc(r.stijl && r.stijl.voor || "?")})</span></div>
+    </div>
+    <h3 style="margin:20px 0 10px">Eisen</h3>
+    <ul class="check">${(c.eisen || []).map((e) => `<li><span class="${e.ok ? "ok" : "nok"}">${e.ok ? "✓" : "✗"}</span><span><b>${esc(e.eis)}</b><br>${esc(e.toelichting)}</span></li>`).join("")}</ul>
+    <div class="doc">
+      <h3>Bronnen</h3><p>${esc(c.bronnen)}</p>
+      ${(c.verbeterpunten || []).length ? `<h3>Nog open</h3>${md((c.verbeterpunten).map((p) => "- " + p).join("\n"))}` : ""}
+      <h3>Jort-check</h3>${md(r.stijl && r.stijl.uitleg)}
+      <h3>Taal</h3>${md(r.taal)}
+    </div>` : leeg("controle");
+  toonBestanden();
+}
+function leeg(wat) {
+  return `<div class="leeg"><b>Nog geen ${wat}.</b><span>Kies een opdracht en klik op "Laat het team werken". Na een paar minuten staat hier het resultaat.</span></div>`;
+}
+function diaPreview(d, i) {
+  const donker = ["titel", "stelling", "afsluiting"].includes(d.type);
+  const kop = d.titel || d.tekst || "";
+  const sub = d.ondertitel || (d.punten || []).join(" · ") || (d.kaarten || []).map((k) => k.kop).join(" · ") ||
+    (d.stappen || []).map((s) => s.jaar).join(" → ") || (d.vakken || []).map((v) => v.kop).join(" · ") ||
+    (d.getal ? d.getal + " " + (d.label || "") : "") || d.door || d.afbeelding || (d.bronnen ? d.bronnen.length + " bronnen" : "");
+  return `<figure class="dia" style="margin:0"><div class="vlak ${donker ? "donker" : ""}"><b>${esc(kop)}</b><span>${esc(sub)}</span></div>
+    <figcaption class="info"><span>${i + 1} · ${esc(d.type)}</span><span>${(d.notities || "").split(/\s+/).filter(Boolean).length} woorden</span></figcaption></figure>`;
+}
+document.querySelectorAll('[role="tab"]').forEach((t) => t.onclick = () => {
+  document.querySelectorAll('[role="tab"]').forEach((x) => { x.setAttribute("aria-selected", x === t); $("#" + x.getAttribute("aria-controls")).hidden = x !== t });
+});
+
+/* ---------- bestanden ---------- */
+const naam = (r) => `${r.vak} ${r.week ? "week " + r.week + " " : ""}${r.titel}`.replace(/[\\/:*?"<>|]/g, "").trim();
+function toonBestanden() {
+  const f = $("#files");
+  if (!R || !R.tekst) { f.innerHTML = ""; return }
+  if (!downloads) { f.innerHTML = '<span class="notice">Downloaden kan hier niet. Kopieer de tekst uit de tabbladen.</span>'; return }
+  f.innerHTML = [
+    R.deck && `<button class="btn small" data-f="pptx">PowerPoint (.pptx)</button>`,
+    `<button class="btn small ghost" data-f="opdracht">Opdracht (.md)</button>`,
+    R.deck && `<button class="btn small ghost" data-f="spreek">Spreektekst (.md)</button>`,
+    R.spiek && `<button class="btn small ghost" data-f="spiek">Spiekbrief (.md)</button>`,
+  ].filter(Boolean).join("") + '<span class="notice" id="dl-msg"></span>';
+  f.querySelectorAll("button").forEach((b) => b.onclick = () => bewaar(b.dataset.f));
+}
+async function bewaar(soort) {
+  const msg = $("#dl-msg");
+  try {
+    let data, ext = "md", n = naam(R);
+    if (soort === "pptx") { data = await bouwDeck(R.deck, R); ext = "pptx" }
+    if (soort === "opdracht") data = R.tekst;
+    if (soort === "spreek") { data = spreektekst(R); n += " - spreektekst" }
+    if (soort === "spiek") { data = R.spiek; n += " - spiekbrief" }
+    await downloads.save({ filename: `${n}.${ext}`, data });
+    msg.textContent = "Opgeslagen.";
+  } catch (e) {
+    msg.textContent = e.code === "declined" ? "" : e.code === "rate_limited" ? "Er staat al een opslagvraag open." : "Opslaan lukte niet.";
+  }
+}
+
+/* ---------- PowerPoint bouwen (zelfde ontwerp als tools/maak-deck.js) ---------- */
+const THEMAS = {
+  digitaal: { donker: "141B34", licht: "FFFFFF", zacht: "EEF1FB", accent: "6C5CE7", accent2: "00B894", tekst: "1E2433", grijs: "5B6275" },
+  zakelijk: { donker: "1E2761", licht: "FFFFFF", zacht: "EEF2FA", accent: "F2A541", accent2: "3E7CB1", tekst: "1E2433", grijs: "5B6275" },
+  groen: { donker: "1F3B2D", licht: "FFFFFF", zacht: "EEF5EF", accent: "97BC62", accent2: "E07A5F", tekst: "1F2A24", grijs: "56645B" },
+  energiek: { donker: "2F3C7E", licht: "FFFFFF", zacht: "FFF1F1", accent: "F96167", accent2: "F2C14E", tekst: "222222", grijs: "5E5E6E" },
+};
+async function bouwDeck(spec, r) {
+  const K = THEMAS[spec.thema] || THEMAS.digitaal, KOP = "Cambria", BODY = "Calibri";
+  const pres = new PptxGenJS();
+  pres.layout = "LAYOUT_16x9"; pres.title = spec.titel || r.titel; pres.author = "Jort Eeltink";
+  pres.theme = { headFontFace: KOP, bodyFontFace: BODY };
+  pres.defineSlideMaster({ title: "DONKER", background: { color: K.donker }, objects: [
+    { placeholder: { options: { name: "titel", type: "title", x: 0.5, y: 1.7, w: 9, h: 1.3, fontFace: KOP, fontSize: 38, bold: true, color: K.licht, valign: "bottom", align: "left", margin: 0 }, text: "" } }] });
+  pres.defineSlideMaster({ title: "LICHT", background: { color: K.licht }, objects: [
+    { placeholder: { options: { name: "titel", type: "title", x: 0.5, y: 0.35, w: 9, h: 0.8, fontFace: KOP, fontSize: 28, bold: true, color: K.donker, valign: "middle", align: "left", margin: 0 }, text: "" } },
+    { text: { text: `${r.vak}${r.week ? " · week " + r.week : ""}`, options: { x: 0.5, y: 5.2, w: 7, h: 0.3, fontSize: 10, color: K.grijs, fontFace: BODY, margin: 0 } } }],
+    slideNumber: { x: 9.0, y: 5.2, w: 0.5, h: 0.3, fontSize: 10, color: K.grijs, fontFace: BODY } });
+  const tb = (x) => Object.assign({ isTextBox: true, fontFace: BODY, color: K.tekst, margin: 0 }, x);
+  const lijst = (items, x = {}) => (items || []).map((t, i, a) => ({ text: String(t), options: Object.assign({ bullet: { indent: 18 }, breakLine: i < a.length - 1, paraSpaceAfter: 8 }, x) }));
+  const kaart = (s, x, y, w, h, c = K.zacht) => s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y, w, h, fill: { color: c }, rectRadius: 0.12, line: { color: c } });
+  const bol = (s, x, y, d, t, c = K.accent) => { s.addShape(pres.shapes.OVAL, { x, y, w: d, h: d, fill: { color: c }, line: { color: c } }); s.addText(String(t), tb({ x, y, w: d, h: d, align: "center", valign: "middle", fontSize: Math.round(d * 28), bold: true, color: K.licht })) };
+  const LICHT = () => pres.addSlide({ masterName: "LICHT" });
+  const M = {
+    titel(d) { const s = pres.addSlide({ masterName: "DONKER" }); s.addText(d.titel || "", { placeholder: "titel" });
+      if (d.ondertitel) s.addText(d.ondertitel, tb({ x: 0.5, y: 3.15, w: 9, h: 0.6, fontSize: 18, color: K.zacht }));
+      s.addShape(pres.shapes.OVAL, { x: 0.5, y: 0.6, w: 0.6, h: 0.6, fill: { color: K.accent }, line: { color: K.accent } });
+      s.addShape(pres.shapes.OVAL, { x: 0.95, y: 0.6, w: 0.6, h: 0.6, fill: { color: K.accent2, transparency: 20 }, line: { color: K.accent2, transparency: 20 } });
+      s.addText(`Jort Eeltink  ·  ${r.vak}`, tb({ x: 0.5, y: 4.7, w: 9, h: 0.4, fontSize: 12, color: K.zacht })); return s },
+    punten(d) { const s = LICHT(); s.addText(d.titel || "", { placeholder: "titel" }); const w = d.kern ? 5.4 : 9;
+      s.addText(lijst(d.punten), tb({ x: 0.5, y: 1.35, w, h: 3.6, fontSize: 16, valign: "top" }));
+      if (d.kern) { kaart(s, 6.2, 1.35, 3.3, 3.5, K.donker); s.addText("Kern", tb({ x: 6.5, y: 1.6, w: 2.7, h: 0.4, fontSize: 12, bold: true, color: K.accent2 }));
+        s.addText(d.kern, tb({ x: 6.5, y: 2.05, w: 2.7, h: 2.6, fontSize: 18, bold: true, color: K.licht, valign: "top", fontFace: KOP })) } return s },
+    kaarten(d) { const s = LICHT(); s.addText(d.titel || "", { placeholder: "titel" }); const ks = (d.kaarten || []).slice(0, 6), n = ks.length;
+      const kol = n <= 3 ? n : n === 4 ? 2 : 3, rij = Math.ceil(n / kol), g = 0.3, w = (9 - g * (kol - 1)) / kol, h = (3.6 - g * (rij - 1)) / rij;
+      ks.forEach((k, i) => { const x = 0.5 + (i % kol) * (w + g), y = 1.35 + Math.floor(i / kol) * (h + g); kaart(s, x, y, w, h);
+        bol(s, x + 0.2, y + 0.2, 0.42, k.letter || i + 1, i % 2 ? K.accent2 : K.accent);
+        s.addText(k.kop || "", tb({ x: x + 0.75, y: y + 0.2, w: w - 0.95, h: 0.42, fontSize: 15, bold: true, color: K.donker, valign: "middle" }));
+        s.addText(k.tekst || "", tb({ x: x + 0.2, y: y + 0.75, w: w - 0.4, h: h - 0.9, fontSize: rij > 1 ? 12 : 14, valign: "top" })) }); return s },
+    tijdlijn(d) { const s = LICHT(); s.addText(d.titel || "", { placeholder: "titel" }); const st = (d.stappen || []).slice(0, 6), n = st.length || 1, w = 9 / n, yl = 2.75;
+      s.addShape(pres.shapes.LINE, { x: 0.5 + w / 2, y: yl, w: 9 - w, h: 0, line: { color: K.grijs, width: 2 } });
+      st.forEach((p, i) => { const cx = 0.5 + i * w + w / 2;
+        s.addText(String(p.jaar || ""), tb({ x: cx - w / 2, y: 1.85, w, h: 0.5, fontSize: 20, bold: true, color: K.accent, align: "center", fontFace: KOP }));
+        s.addShape(pres.shapes.OVAL, { x: cx - 0.13, y: yl - 0.13, w: 0.26, h: 0.26, fill: { color: i % 2 ? K.accent2 : K.accent }, line: { color: K.licht, width: 2 } });
+        s.addText(p.tekst || "", tb({ x: cx - w / 2 + 0.08, y: 3.1, w: w - 0.16, h: 1.9, fontSize: 13, align: "center", valign: "top" })) }); return s },
+    matrix(d) { const s = LICHT(); s.addText(d.titel || "", { placeholder: "titel" }); const as = Array.isArray(d.assen) && d.assen.length === 2;
+      const x0 = as ? 0.9 : 0.5, y0 = 1.3, W = 9.5 - x0, H = 3.7, g = 0.2, w = (W - g) / 2, h = (H - g) / 2;
+      (d.vakken || []).slice(0, 4).forEach((v, i) => { const x = x0 + (i % 2) * (w + g), y = y0 + Math.floor(i / 2) * (h + g); kaart(s, x, y, w, h);
+        s.addText(v.kop || "", tb({ x: x + 0.2, y: y + 0.12, w: w - 0.4, h: 0.35, fontSize: 14, bold: true, color: i % 2 ? K.accent2 : K.accent }));
+        s.addText(lijst(v.punten, { paraSpaceAfter: 3 }), tb({ x: x + 0.2, y: y + 0.5, w: w - 0.4, h: h - 0.6, fontSize: 12, valign: "top" })) });
+      if (as) { s.addText(`${d.assen[0]} →`, tb({ x: x0, y: 5.02, w: W, h: 0.2, fontSize: 10, color: K.grijs, align: "center" }));
+        s.addText(`${d.assen[1]} →`, tb({ x: -0.75, y: y0 + H / 2 - 0.15, w: 2.2, h: 0.3, fontSize: 10, color: K.grijs, rotate: 270, align: "center" })) } return s },
+    getal(d) { const s = LICHT(); s.addText(d.titel || "", { placeholder: "titel" }); kaart(s, 0.5, 1.35, 4.2, 3.5, K.donker); const g = String(d.getal || "");
+      s.addText(g, tb({ x: 0.7, y: 1.7, w: 3.8, h: 1.6, fontSize: g.length <= 4 ? 60 : g.length <= 7 ? 44 : 32, bold: true, color: K.accent2, align: "center", valign: "middle", fontFace: KOP }));
+      s.addText(d.label || "", tb({ x: 0.7, y: 3.35, w: 3.8, h: 1.1, fontSize: 15, color: K.licht, align: "center", valign: "top" }));
+      s.addText(d.tekst || "", tb({ x: 5.1, y: 1.35, w: 4.4, h: 3.1, fontSize: 16, valign: "top" }));
+      if (d.bron) s.addText(d.bron, tb({ x: 5.1, y: 4.5, w: 4.4, h: 0.4, fontSize: 10, color: K.grijs, italic: true })); return s },
+    stelling(d) { const s = pres.addSlide({ masterName: "DONKER" }); s.addText("“", tb({ x: 0.5, y: 0.4, w: 1.5, h: 1.3, fontSize: 96, color: K.accent, fontFace: KOP }));
+      s.addText(d.tekst || d.titel || "", tb({ x: 0.9, y: 1.4, w: 8.2, h: 2.6, fontSize: 28, bold: true, color: K.licht, fontFace: KOP, valign: "middle" }));
+      if (d.door) s.addText(d.door, tb({ x: 0.9, y: 4.2, w: 8.2, h: 0.4, fontSize: 14, color: K.accent2 })); return s },
+    afbeelding(d) { const s = LICHT(); s.addText(d.titel || "", { placeholder: "titel" }); const w = d.tekst ? 5.6 : 9; kaart(s, 0.5, 1.3, w, 3.7);
+      s.addText(`[Foto invoegen: ${d.afbeelding || "afbeelding"}]`, tb({ x: 0.8, y: 1.3, w: w - 0.6, h: 3.7, fontSize: 14, color: K.grijs, align: "center", valign: "middle" }));
+      if (d.tekst) s.addText(d.tekst, tb({ x: 6.4, y: 1.3, w: 3.1, h: 3.7, fontSize: 15, valign: "top" })); return s },
+    bronnen(d) { const s = LICHT(); s.addText(d.titel || "Bronnen", { placeholder: "titel" }); const b = d.bronnen || [];
+      s.addText(b.map((t, i) => ({ text: String(t), options: { breakLine: i < b.length - 1, paraSpaceAfter: 6 } })), tb({ x: 0.5, y: 1.3, w: 9, h: 3.7, fontSize: b.length > 6 ? 10 : 11, valign: "top" })); return s },
+    afsluiting(d) { const s = pres.addSlide({ masterName: "DONKER" }); s.addText(d.titel || "Vragen?", { placeholder: "titel" });
+      if (d.punten) s.addText(lijst(d.punten), tb({ x: 0.5, y: 3.2, w: 9, h: 1.8, fontSize: 16, color: K.zacht, valign: "top" })); return s },
+  };
+  (spec.slides || []).forEach((d) => { const s = (M[d.type] || M.punten)(d); if (d.notities) s.addNotes(String(d.notities)) });
+  return await pres.write({ outputType: "blob" });
+}
+
+if (R) toonResultaat(R); else toonResultaat({});
+</script>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d0c1d">
+<title>Jorts Game Studio</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+<link rel="stylesheet" href="engine/party.css">
+<style>
+  html, body { height: auto; overflow: auto; user-select: auto; }
+  html { min-height: 100%; }
+  body {
+    min-height: 100%;
+    background: radial-gradient(circle at 15% 0%, rgba(177,94,255,.35), transparent 45%), radial-gradient(circle at 90% 30%, rgba(255,77,109,.25), transparent 45%), var(--bg);
+    background-attachment: fixed;
+  }
+  main { max-width: 960px; margin: 0 auto; padding: max(24px, env(safe-area-inset-top)) 16px 48px; }
+  header { text-align: center; margin-bottom: 28px; }
+  header .logo { font-size: 72px; line-height: 1; animation: bob 2.4s ease-in-out infinite; }
+  @keyframes bob { 50% { transform: translateY(-8px) rotate(6deg); } }
+  h1 { font-size: clamp(36px, 9vw, 60px); margin: 8px 0 4px; line-height: 1; }
+  header p { color: var(--muted); margin: 0; font-size: 18px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .game {
+    display: flex; flex-direction: column; gap: 6px; padding: 20px; border-radius: 22px; text-decoration: none; color: var(--text);
+    background: var(--panel); border: 2px solid transparent; transition: transform .12s, border-color .12s; box-shadow: 0 6px 0 rgba(0,0,0,.3);
+  }
+  .game:hover, .game:focus-visible { transform: translateY(-3px) rotate(-.5deg); border-color: var(--accent); outline: none; }
+  .game .e { font-size: 56px; line-height: 1; }
+  .game h2 { margin: 6px 0 0; font-size: 26px; }
+  .game p { margin: 0; color: var(--muted); }
+  .game .meta { margin-top: auto; padding-top: 10px; font-size: 14px; color: var(--accent); }
+  .how { margin-top: 36px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .how div { background: var(--panel); border-radius: 18px; padding: 16px; }
+  .how b { display: block; font-size: 28px; margin-bottom: 4px; }
+  .how span { color: var(--muted); }
+  .empty { color: var(--muted); text-align: center; }
+  footer { text-align: center; color: var(--muted); font-size: 14px; margin-top: 36px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="logo">🎮</div>
+    <h1>Jorts Game Studio</h1>
+    <p>Party games om live samen te spelen, ieder op een eigen telefoon.</p>
+  </header>
+
+  <div class="grid" id="games"><p class="empty">Games laden…</p></div>
+
+  <section class="how" aria-label="Zo speel je samen">
+    <div><b>1️⃣</b><span>Eén iemand kiest een game en tikt op <strong>Nieuw spel starten</strong>.</span></div>
+    <div><b>2️⃣</b><span>De rest scant de <strong>QR-code</strong> of typt de code van 4 letters in.</span></div>
+    <div><b>3️⃣</b><span>De host drukt op <strong>Start</strong>. Te weinig spelers? Voeg een 🤖 bot toe.</span></div>
+  </section>
+
+  <footer>Gemaakt door Jort en een team van AI-agents 🤪🎲🛠️🎨🔍🎉</footer>
+</main>
+<script>
+  const box = document.getElementById('games');
+  fetch('games/games.json', { cache: 'no-store' })
+    .then((r) => r.json())
+    .then((games) => {
+      box.replaceChildren();
+      if (!games.length) { box.innerHTML = '<p class="empty">Nog geen games. Maak er een met /nieuwe-game!</p>'; return; }
+      for (const g of games.slice().reverse()) {
+        const a = document.createElement('a');
+        a.className = 'game';
+        a.href = `games/${encodeURIComponent(g.id)}/`;
+        const e = document.createElement('div'); e.className = 'e'; e.textContent = g.emoji || '🎮';
+        const h = document.createElement('h2'); h.textContent = g.title;
+        const p = document.createElement('p'); p.textContent = g.subtitle || '';
+        const m = document.createElement('div'); m.className = 'meta'; m.textContent = `👥 ${g.players || '2-8'} spelers`;
+        a.append(e, h, p, m);
+        box.append(a);
+      }
+    })
+    .catch(() => { box.innerHTML = '<p class="empty">Kon de lijst met games niet laden.</p>'; });
+</script>
+</body>
+</html>

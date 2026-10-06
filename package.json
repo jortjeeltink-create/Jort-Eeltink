@@ -1,0 +1,14 @@
+{
+  "name": "jort-game-studio",
+  "private": true,
+  "type": "module",
+  "description": "Party games die je live met vrienden speelt, gemaakt door een team van AI-agents.",
+  "scripts": {
+    "dev": "node tools/serve.mjs",
+    "playtest": "node tools/playtest.mjs"
+  },
+  "devDependencies": {
+    "peer": "1.0.2",
+    "playwright": "1.56.1"
+  }
+}

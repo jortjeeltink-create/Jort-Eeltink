@@ -47,6 +47,21 @@ export function h(tag, attrs, ...kids) {
   return e;
 }
 
+// Oudere browsers (bijv. iOS 15) kennen roundRect niet: dan tekenen we hem zelf.
+if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r = 0) {
+    let rr = Array.isArray(r) ? r[0] ?? 0 : r;
+    if (typeof rr === 'object') rr = rr.x ?? 0;
+    rr = Math.max(0, Math.min(rr, Math.abs(w) / 2, Math.abs(h) / 2));
+    this.moveTo(x + rr, y);
+    this.arcTo(x + w, y, x + w, y + h, rr);
+    this.arcTo(x + w, y + h, x, y + h, rr);
+    this.arcTo(x, y + h, x, y, rr);
+    this.arcTo(x, y, x + w, y, rr);
+    this.closePath();
+  };
+}
+
 const store = {
   get(k, d) { try { const v = localStorage.getItem('party:' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem('party:' + k, JSON.stringify(v)); } catch {} },
@@ -112,6 +127,7 @@ class Party {
     this.shownCount = 0;
     this.conns = new Map();    // host: peerId -> { conn, id, lastSeen }
     this.inputs = {};          // host: id -> laatste besturing
+    this.lastSeenById = {};    // host: id -> laatste bericht
     this.lastK = {};
     this.lastB = {};
     this.lastAct = {};
@@ -331,7 +347,7 @@ class Party {
     conn.on('data', (d) => {
       let m; try { m = JSON.parse(d); } catch { return; }
       const c = this.conns.get(conn.peer);
-      if (c) c.lastSeen = performance.now();
+      if (c) { c.lastSeen = performance.now(); this.lastSeenById[c.id] = c.lastSeen; }
       if (m.t === 'hello') this.onHello(conn, m);
       else if (!c) return;
       else if (m.t === 'in') this.inputs[c.id] = { x: clamp(+m.x || 0, -1, 1), y: clamp(+m.y || 0, -1, 1), b: Array.isArray(m.b) ? m.b.map(Boolean) : [], k: Array.isArray(m.k) ? m.k.map(Number) : [] };
@@ -360,6 +376,7 @@ class Party {
     }
     for (const [pid, c] of this.conns) if (c.id === p.id && pid !== conn.peer) { this.conns.delete(pid); try { c.conn.close(); } catch {} }
     this.conns.set(conn.peer, { conn, id: p.id, lastSeen: performance.now() });
+    this.lastSeenById[p.id] = performance.now();
     conn.send(JSON.stringify({ t: 'welcome', id: p.id, room: this.room }));
     if (this.phase === 'playing' && !this.inRound.has(p.id) && this.g.onJoin) {
       this.inRound.add(p.id);
@@ -451,10 +468,10 @@ class Party {
       if (this.sendAcc >= 1 / this.g.tickRate) { this.sendAcc = Math.min(this.sendAcc - 1 / this.g.tickRate, 1 / this.g.tickRate); this.broadcastState(); }
     }
     this.lobbyAcc += dt;
-    if (this.lobbyAcc > 3) {
+    if (this.lobbyAcc > 1) {
       this.lobbyAcc = 0;
-      if (this.phase === 'lobby') this.broadcastLobby(false);
-      for (const [pid, c] of this.conns) if (now - c.lastSeen > 10000) { try { c.conn.close(); } catch {} this.dropConn(pid); }
+      if (this.phase === 'lobby' && (this.lobbyBeat = (this.lobbyBeat || 0) + 1) % 3 === 0) this.broadcastLobby(false);
+      for (const [pid, c] of this.conns) if (now - c.lastSeen > 6000) { try { c.conn.close(); } catch {} this.dropConn(pid); }
     }
   }
 
@@ -483,7 +500,11 @@ class Party {
       let raw;
       if (p.bot) raw = this.botInput(p.id);
       else if (p.id === this.me) raw = this.autopilot ? this.botInput(p.id) : this.controls.read();
-      else raw = this.inputs[p.id] || { x: 0, y: 0, b: [], k: [] };
+      else {
+        const fresh = performance.now() - (this.lastSeenById[p.id] || 0) < 1500;
+        const last = this.inputs[p.id];
+        raw = last && fresh ? last : { x: 0, y: 0, b: [], k: last?.k || [] };
+      }
       const n = Math.max(4, raw.b.length);
       const lastK = this.lastK[p.id] || [];
       const lastB = this.lastB[p.id] || [];

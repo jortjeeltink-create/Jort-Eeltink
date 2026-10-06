@@ -33,6 +33,7 @@ Deze fouten maken een game kapot op de andere apparaten. Controleer ze altijd:
 9. **Een ronde eindigt altijd** met `party.end(...)`, ook als er nog maar 1 of 0 spelers over zijn.
 10. **`bot()` moet werken**, en mag alleen de `state` gebruiken. De playtest gebruikt hem.
 11. **Vertrouw `onAction` niet blind**: check of de actie mag (juiste fase, nog niet gekozen, geldige waarde).
+12. **Denk aan oudere telefoons**: gebruik geen gloednieuwe browserfuncties (zoals `structuredClone`, `Array.prototype.at`, `findLast` of CSS-nesting). `roundRect` mag wel: de engine vult die aan voor oude iPhones.
 
 ## Code-stijl
 

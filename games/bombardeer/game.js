@@ -15,8 +15,11 @@ const SPEED = 380, HOLD_SPEED = 410;
 const SPRINT_T = 0.35, SPRINT_MUL = 2.4, SPRINT_CD = 2.35;
 const GHOST_SPEED = 320;
 const TAG_DIST = 90;
-const LOCK = 0.8;             // nieuwe houder kan even niet tikken
+const LOCK = 0.8;             // nieuwe houder kan even niet tikken (in TSSSS niet: dan mag je meteen door)
 const SAFE_T = 2;             // wie de kroket net doorgaf, is zo lang VEILIG (geen pingpong)
+const HOT_T = 0.5, HOT_MUL = 0.15; // hete handjes: na een gewone tik loop je even heel langzaam ("AU! HEET!")
+// bots als er even geen kroket is (intro en pauze): rustig verspreiden in plaats van klonteren
+const BOT_SPREAD = 320, BOT_CALM = 0.45, BOT_IDLE = 0.2;
 const INTRO = 2, PAUSE = 3, SLOW_T = 1.0, RESPAWN = 1.5, SHIELD = 1.5;
 // lont: hangt af van het aantal spelers BIJ DE START (in de finale wordt hij dus niet langer)
 const FUSE_BASE = 14, FUSE_SMALL = 18, SMALL_N = 4, FUSE_DROP = 1.2, FUSE_MIN = 6, FUSE_SD = 3;
@@ -83,13 +86,32 @@ function fleeDir(me, threat) {
 // ----- spelregels (host) -----
 
 // Bom gaat van de ene speler naar de andere. Wie hem kwijt is, is even VEILIG.
-function pass(S, to, party) {
+// In TSSSS geen vergrendeling: wie hem in de laatste seconde krijgt, kan hem nog net doorgeven.
+// hot = gewone tik: dan heeft de nieuwe houder hete handjes (niet na een spook-gooi of de kip).
+function pass(S, to, party, hot) {
   const from = S.holder;
   if (from && S.p[from] && from !== to) S.p[from].safe = SAFE_T;
+  const slow = S.phase === 'slow';
   S.holder = to;
-  S.p[to].lock = LOCK;
+  S.p[to].lock = slow ? 0 : LOCK;
   S.p[to].safe = 0;
-  party.emit('pas', { x: S.p[to].x, y: S.p[to].y, from, to });
+  S.p[to].hot = hot && !slow ? HOT_T : 0;
+  party.emit('pas', { x: S.p[to].x, y: S.p[to].y, from, to, hot: S.p[to].hot > 0 ? 1 : 0 });
+}
+
+// Wie krijgt de volgende kroket? Wie hem het minst vaak had (gelijk: loten). Al bij de BOEM gekozen,
+// zodat iedereen in de pauze ziet voor wie hij is en kan wegrennen.
+function chooseNext(S) {
+  const cand = living(S);
+  if (!cand.length) return null;
+  const min = Math.min(...cand.map(([, p]) => p.held));
+  return pick(cand.filter(([, q]) => q.held === min))[0];
+}
+
+// Pauze tussen twee kroketten (met het volgende slachtoffer erbij).
+function toPause(S) {
+  S.phase = 'pause'; S.pause = PAUSE; S.holder = null; S.chicken = null;
+  S.next = chooseNext(S);
 }
 
 // Nieuwe lont, en loten of (en wanneer) de kip komt.
@@ -106,14 +128,16 @@ function startFuse(S) {
 // Nieuwe kroket met een volle lont voor deze speler.
 function newBomb(S, id, party) {
   const p = S.p[id];
-  p.held++; p.lock = LOCK; p.safe = 0;
-  S.holder = id;
+  p.held++; p.lock = LOCK; p.safe = 0; p.hot = 0;
+  S.holder = id; S.next = null;
   startFuse(S);
   party.emit('bom', { x: p.x, y: p.y, id });
 }
 
-// Nieuwe bom: valt op de speler die hem het minst vaak heeft gehad.
+// Nieuwe bom: valt op het gekozen slachtoffer (S.next). Is die weg of nog niet terug: wie hem het minst had.
 function giveBomb(S, party) {
+  const n = S.next && S.p[S.next];
+  if (n && !n.ghost && n.rs <= 0) { newBomb(S, S.next, party); return; }
   const cand = playable(S);
   if (!cand.length) return;
   const min = Math.min(...cand.map(([, p]) => p.held));
@@ -123,7 +147,7 @@ function giveBomb(S, party) {
 // Ronde loopt af (na een korte pauze, zodat de BOEM te zien is).
 function toFin(S, t) {
   if (S.phase === 'fin') return;
-  S.phase = 'fin'; S.pause = t; S.holder = null; S.chicken = null;
+  S.phase = 'fin'; S.pause = t; S.holder = null; S.chicken = null; S.next = null;
 }
 
 // Speler wordt spook (na BOEM of na wegvallen).
@@ -135,7 +159,7 @@ function makeGhost(S, p) {
 function boom(S, party) {
   const id = S.holder, p = S.p[id];
   S.holder = null;
-  if (!p || p.ghost) { S.phase = 'pause'; S.pause = PAUSE; return; }
+  if (!p || p.ghost) { toPause(S); return; }
   p.lives--; p.bm++; S.booms++;
   const filling = S.filling;
   S.filling = pick(FILLS);
@@ -144,10 +168,11 @@ function boom(S, party) {
   if (out) {
     makeGhost(S, p); S.order.push(id);
     party.emit('spook', { x: p.x, y: p.y, id });
-    party.emit('uit', { id, left: living(S).length });
+    // de BOEM-plek gaat mee, zodat "Nog N!" altijd op de andere helft komt (het spook vliegt intussen weg)
+    party.emit('uit', { id, left: living(S).length, x: p.x, y: p.y });
   } else { p.rs = RESPAWN; }
   if (living(S).length <= 1) toFin(S, 2.5);
-  else { S.phase = 'pause'; S.pause = PAUSE; }
+  else toPause(S);
 }
 
 // Kip: de kroket springt van de houder af en rent naar een doelwit (dat staat in de state).
@@ -202,7 +227,7 @@ function updateChicken(S, dt, party) {
     const c = playable(S).sort((a, b) => dist(a[1], ch) - dist(b[1], ch));
     to = (c.find(([id]) => id !== ch.target) || c[0] || [null])[0];
   }
-  if (!to) { S.phase = 'pause'; S.pause = PAUSE; return; }
+  if (!to) { toPause(S); return; }
   pass(S, to, party);
   party.emit('kipop', { kx: ch.x, ky: ch.y, x: S.p[to].x, y: S.p[to].y, id: to, back: to === ch.from, target: ch.target });
 }
@@ -293,14 +318,14 @@ startGame({
       const a = (i / players.length) * Math.PI * 2;
       p[pl.id] = {
         x: CX + Math.cos(a) * 380, y: CY + Math.sin(a) * 380, lives,
-        sprint: 0, cd: 0, lock: 0, safe: 0, shield: 0, slip: 0, sx: 0, sy: 0,
+        sprint: 0, cd: 0, lock: 0, safe: 0, shield: 0, slip: 0, sx: 0, sy: 0, hot: 0,
         ghost: false, threw: false, gb: 0, away: 0, held: 0, rs: 0, bm: 0, out: 0,
       };
     });
     return {
       p, ml: lives, small: players.length <= SMALL_N, holder: null, fuse: 0, fuseMax: 1, ckAt: 0, chicken: null, bananas: [],
       phase: 'intro', pause: INTRO, boomT: 0, booms: 0, filling: pick(FILLS), bananaT: BANANA_EVERY,
-      elapsed: 0, order: [], tk: -1, sd: false,
+      elapsed: 0, order: [], tk: -1, sd: false, next: null,
     };
   },
 
@@ -325,7 +350,7 @@ startGame({
     for (const [id, p] of Object.entries(S.p)) {
       p.lock = Math.max(0, p.lock - dt); p.shield = Math.max(0, p.shield - dt); p.safe = Math.max(0, p.safe - dt);
       p.cd = Math.max(0, p.cd - dt); p.sprint = Math.max(0, p.sprint - dt); p.slip = Math.max(0, p.slip - dt);
-      p.gb = Math.max(0, p.gb - dt);
+      p.gb = Math.max(0, p.gb - dt); p.hot = Math.max(0, (p.hot || 0) - dt);
       if (p.rs > 0) { p.rs -= dt; if (p.rs <= 0) respawn(p); continue; }
       const inp = inputs[id] || { x: 0, y: 0, pressed: [] };
       let ix = inp.x || 0, iy = inp.y || 0;
@@ -339,8 +364,9 @@ startGame({
       let vx, vy;
       if (p.slip > 0) { vx = p.sx * SLIP_SPEED; vy = p.sy * SLIP_SPEED; }
       else {
-        if (inp.pressed?.[0] && p.cd <= 0 && m > 0.2) { p.sprint = SPRINT_T; p.cd = SPRINT_CD; party.emit('sprint', { x: p.x, y: p.y }); }
-        const sp = (id === S.holder ? HOLD_SPEED : SPEED) * (p.sprint > 0 ? SPRINT_MUL : 1);
+        const hot = id === S.holder && p.hot > 0; // hete handjes: even jongleren, bijna stilstaan
+        if (inp.pressed?.[0] && p.cd <= 0 && m > 0.2 && !hot) { p.sprint = SPRINT_T; p.cd = SPRINT_CD; party.emit('sprint', { x: p.x, y: p.y }); }
+        const sp = (id === S.holder ? HOLD_SPEED : SPEED) * (p.sprint > 0 ? SPRINT_MUL : 1) * (hot ? HOT_MUL : 1);
         vx = ix * sp; vy = iy * sp;
       }
       p.x = clamp(p.x + vx * dt, X0, X1); p.y = clamp(p.y + vy * dt, Y0, Y1);
@@ -393,7 +419,7 @@ startGame({
     if (!S.holder && !S.chicken) {
       const c = playable(S);
       if (c.length) newBomb(S, pick(c)[0], party);
-      else { S.phase = 'pause'; S.pause = PAUSE; }
+      else toPause(S);
       return;
     }
 
@@ -417,7 +443,7 @@ startGame({
         const d = dist(h, q);
         if (d < bd) { bd = d; best = id; }
       }
-      if (best) pass(S, best, party);
+      if (best) pass(S, best, party, true);
     }
 
     // tik-geluid, slowmotion en BOEM
@@ -439,12 +465,13 @@ startGame({
     if (!p || p.ghost || S.phase === 'fin') return;
     makeGhost(S, p); p.away = 1;
     party.emit('weg', { x: p.x, y: p.y, id });
+    if (S.next === id) S.next = S.phase === 'pause' ? chooseNext(S) : null; // het slachtoffer is weg: kies een ander
     if (S.holder === id) {
       S.holder = null;
       if (S.phase === 'play' || S.phase === 'slow') {
         const c = playable(S);
         if (c.length) newBomb(S, pick(c)[0], party);
-        else { S.phase = 'pause'; S.pause = PAUSE; }
+        else toPause(S);
       }
     }
   },
@@ -472,9 +499,18 @@ startGame({
     }
     const others = Object.entries(S.p).filter(([oid, q]) => oid !== id && !q.ghost && q.rs <= 0);
     const hunted = S.chicken?.target === id; // de kip moet MIJ hebben
-    let x = 0, y = 0, sprint = false, flee = false;
+    let x = 0, y = 0, sprint = false, flee = false, spd = 1;
     const hold = S.holder === id;
-    if (hold) {
+    const nx = S.phase === 'pause' && S.next && S.p[S.next] && !S.p[S.next].ghost ? S.next : null;
+    if (!S.holder && !S.chicken) {
+      // geen kroket in het spel (intro of pauze): weg van het volgende slachtoffer, of rustig verspreiden
+      const nv = nx && nx !== id ? S.p[nx] : null;
+      const near = others.slice().sort((a, b) => dist(me, a[1]) - dist(me, b[1]))[0];
+      if (nv && dist(me, nv) < 500) { [x, y] = fleeDir(me, nv); flee = true; sprint = dist(me, nv) < 160 && Math.random() < 0.1; }
+      else if (nx === id && near) { x = near[1].x - me.x; y = near[1].y - me.y; spd = BOT_CALM; } // ik ben de volgende: sluip er alvast heen
+      else if (near && dist(me, near[1]) < BOT_SPREAD) { [x, y] = fleeDir(me, near[1]); flee = true; spd = BOT_CALM; }
+      else spd = BOT_IDLE;
+    } else if (hold) {
       let tg = null, bd = Infinity;
       for (const [, q] of others) {
         const d = dist(me, q) + (open(q) ? 0 : 400);
@@ -490,9 +526,9 @@ startGame({
         sprint = d < (src === S.chicken ? 200 : 140) && Math.random() < 0.15;
       }
       if (S.chicken && src !== S.chicken && dist(me, S.chicken) < 250) { x += (me.x - S.chicken.x) / 200; y += (me.y - S.chicken.y) / 200; }
-      // bananen ontwijken
-      for (const b of S.bananas) { const d = dist(me, b); if (d < 130 && d > 0) { x += ((me.x - b.x) / d) * 1.5; y += ((me.y - b.y) / d) * 1.5; } }
     }
+    // bananen ontwijken (wie geen kroket heeft)
+    if (!hold) for (const b of S.bananas) { const d = dist(me, b); if (d < 130 && d > 0) { x += ((me.x - b.x) / d) * 1.5; y += ((me.y - b.y) / d) * 1.5; } }
     // muren ontwijken en naar het midden hoeken uit (vluchten houdt zelf al rekening met muren)
     if (!flee) {
       const mm = 130, push = 1.6;
@@ -504,7 +540,7 @@ startGame({
     const sway = hunted ? 0 : Math.sin(t * 1.4 + h) * (flee ? 0.2 : 0.4);
     const c = Math.cos(sway), s = Math.sin(sway);
     const rx = x * c - y * s, ry = x * s + y * c;
-    const n = Math.hypot(rx, ry) || 1;
+    const n = (Math.hypot(rx, ry) || 1) / spd;
     return { x: rx / n, y: ry / n, buttons: [sprint && me.cd <= 0] };
   },
 

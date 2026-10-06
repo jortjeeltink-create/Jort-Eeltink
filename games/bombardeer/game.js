@@ -34,12 +34,13 @@ const BANANA_ARM = 0.8;       // een nieuwe banaan "valt" eerst even en is dan p
 const GOOI_MIN = 1.5;         // spook-gooi kan niet meer als de lont korter is (en niet tijdens TSSSS)
 const GHOST_BANANA_CD = 8, GHOST_BANANA_START = 2;
 const AWAY_MSG_MS = 7000;     // zo lang zie je "Je was even weg" na terugkomen
+// vulling van de kroket: emoji, grap en een eigen geluidje (alleen voor de show)
 const FILL = {
-  taart: { e: '🎂', t: (n) => `${n} is nu een taart 🎂` },
-  eend: { e: '🦆', t: () => 'Een eend! Zomaar. 🦆' },
-  sokken: { e: '🧦', t: () => 'Sokken. Alweer. 🧦' },
-  brief: { e: '💌', t: () => 'Brief van oma: "Eet je groenten" 💌' },
-  confetti: { e: '🎉', t: () => 'VERRASSING! 🎉' },
+  taart: { e: '🎂', s: 'splat', t: (n) => `${n} is nu een taart 🎂` },
+  eend: { e: '🦆', s: 'quack', t: () => 'Een eend! Zomaar. 🦆' },
+  sokken: { e: '🧦', s: 'prrt', t: () => 'Sokken. Alweer. 🧦' },
+  brief: { e: '💌', s: 'pop', t: () => 'Brief van oma: "Eet je groenten" 💌' },
+  confetti: { e: '🎉', s: 'powerup', t: () => 'VERRASSING! 🎉' },
 };
 const FILLS = Object.keys(FILL);
 const FONT = 'Fredoka, system-ui, sans-serif';
@@ -232,6 +233,38 @@ function respawn(p) {
 }
 
 let awaySince = 0; // dit apparaat: sinds wanneer zien we "Je was even weg" (alleen voor de tekst)
+
+// ----- alleen voor tekenen en effecten op dit apparaat (hoort niet in de state) -----
+const TAU = Math.PI * 2;
+const meas = typeof document !== 'undefined' ? document.createElement('canvas').getContext('2d') : null;
+const seen = {};   // waar elke speler op dit scherm het laatst getekend is (voor effecten die van A naar B vliegen)
+let lastS = null;  // de laatst getekende state (alleen lezen, voor effecten die even later komen)
+let pasQ = [];     // effecten van een gewone overgave wachten heel even: bij de kip of de spook-gooi doen die het zelf
+const later = (s, fn) => setTimeout(fn, s * 1000);
+const pickBy = (arr, n) => arr[Math.abs(Math.floor(n)) % arr.length]; // zelfde tekst op elk apparaat
+const bandY = (y) => clamp(y, Y0 + 90, H - 170); // BOEM-teksten blijven binnen de vloer
+
+// Zwevende tekst die altijd helemaal in beeld blijft: te breed wordt kleiner, tegen een muur schuift hij op.
+function say(j, x, y, text, o = {}) {
+  let size = o.size || 40;
+  if (meas) {
+    meas.font = `900 ${size * 1.1}px ${FONT}`;
+    const w = meas.measureText(text).width + size * 0.4;
+    if (w > W - 30) size *= (W - 30) / w;
+    const hw = Math.min(w, W - 30) / 2;
+    x = clamp(x, hw + 15, W - hw - 15);
+  }
+  y = clamp(y, HUD_H + size * 0.7, H - size * 0.7);
+  j.floatText(x, y, text, { ...o, size });
+}
+
+// Spoor van deeltjes in een boogje van A naar B (de kroket vliegt over).
+function trail(j, x0, y0, x1, y1, o) {
+  for (let i = 1; i <= 7; i++) {
+    const k = i / 8;
+    later(i * 0.05, () => j.particles(x0 + (x1 - x0) * k, y0 + (y1 - y0) * k - Math.sin(k * Math.PI) * 110, { count: 3, speed: 50, life: 0.45, ...o }));
+  }
+}
 
 startGame({
   id: 'bombardeer',
@@ -477,85 +510,158 @@ startGame({
 
   // ----- alle apparaten: effecten en geluid -----
   onEvent(name, d, party) {
-    const j = party.juice;
+    const j = party.juice, me = party.me;
     const nm = (id) => nameOf(party, id);
+    const clearPas = () => { pasQ.forEach(clearTimeout); pasQ = []; };
+
+    // nieuwe kroket valt op iemand
     if (name === 'bom') {
-      j.sfx('pop'); j.particles(d.x, d.y - 40, { count: 10, emoji: '🥟', speed: 250, size: 34 });
-      j.floatText(d.x, d.y - 90, 'Kroket in aantocht! 🥟', { color: '#ffd166', size: 40 });
-      if (d.id === party.me) j.vibrate(100);
+      j.sfx('pop', { pitch: 0.8 }); j.sfx('splat', { vol: 0.25, pitch: 1.6 });
+      j.particles(d.x, d.y - 70, { count: 8, emoji: '🥟', speed: 260, size: 10, life: 0.7, gravity: 400 });
+      if (d.id === me) { say(j, d.x, d.y - 120, 'VOOR JOU! 🥟', { color: '#ff4d6d', size: 46, life: 1.2 }); j.vibrate(100); j.shake(5, 0.25); }
+      else say(j, d.x, d.y - 120, pickBy(['Vers uit de frituur! 🥟', 'Kroket in aantocht! 🥟', 'PLOF! 🥟'], d.x + d.y), { color: '#ffd166', size: 40, life: 1.2 });
     }
+    // gewone overgave (bij kip of spook-gooi laten die events hun eigen effect zien)
     if (name === 'pas') {
-      j.sfx('pop', { pitch: 0.9 + Math.random() * 0.5 }); j.shake(3, 0.15); j.particles(d.x, d.y, { count: 8, colors: ['#ffd166', '#fff'], speed: 250 });
-      j.floatText(d.x, d.y - 80, pick(['HIER, JIJ!', 'NIET MIJ!', 'Oeps 🙃']), { color: '#fff', size: 36 });
-      if (d.to === party.me) j.vibrate(80);
+      if (d.to === me) j.vibrate(80);
+      pasQ.push(setTimeout(() => {
+        j.sfx('pop', { pitch: 0.9 + Math.random() * 0.5 });
+        j.particles(d.x, d.y - 20, { count: 10, colors: ['#ffd166', '#fff', '#ff9f1c'], speed: 300, size: 9 });
+        say(j, d.x, d.y - 100, pickBy(['HIER, JIJ!', 'NIET MIJ!', 'Oeps 🙃', 'PLOF!'], d.x * 7 + d.y), { color: '#fff', size: 38 });
+        if (d.to === me) { j.shake(5, 0.2); j.flash('rgba(255,140,40,.25)', 0.2); }
+        if (d.from === me) j.sfx('coin', { vol: 0.5, pitch: 1.2 });
+      }, 0));
     }
-    if (name === 'sprint') { j.sfx('whoosh', { vol: 0.5, pitch: 1 + Math.random() * 0.3 }); j.particles(d.x, d.y, { count: 6, color: '#fff', speed: 200 }); }
+    if (name === 'sprint') {
+      j.sfx('whoosh', { vol: 0.5, pitch: 1 + Math.random() * 0.3 });
+      j.particles(d.x, d.y + 28, { count: 8, colors: ['#fff', '#e6d2ae'], speed: 220, size: 12, life: 0.4 });
+    }
     if (name === 'tik') {
       const f = d.slow ? 1.9 : 1 + (1 - Math.min(d.fuse, 4) / 4) * 0.8;
       j.sfx('tick', { pitch: f, vol: d.fuse > 6 && !d.slow ? 0.4 : 0.8 });
     }
-    if (name === 'slow') { j.sfx('whoosh'); j.shake(4, 1); j.floatText(d.x, d.y - 100, 'TSSSS…', { color: '#ff6b6b', size: 48, life: 1 }); }
+    if (name === 'slow') {
+      j.sfx('whoosh', { pitch: 0.6 }); j.shake(4, 1);
+      say(j, d.x, d.y - 130, 'TSSSS…', { color: '#ff4d6d', size: 54, life: 1, rise: 40 });
+      if (d.id === me) j.vibrate([60, 40, 60, 40, 60, 40, 60]);
+    }
+    // BOEM: de teksten komen NA elkaar (0 / 0,4 / 0,85 / 1,3 s), elk op een eigen hoogte
     if (name === 'boem') {
-      const f = FILL[d.filling] || FILL.taart;
+      const f = FILL[d.filling] || FILL.taart, by = bandY(d.y);
       j.sfx('boom'); j.sfx('splat', { vol: 0.6 }); j.shake(d.out ? 30 : 20, 0.7); j.flash('#fff', 0.3); j.confetti();
-      j.particles(d.x, d.y, { count: 14, emoji: f.e, speed: 600, size: 44, gravity: 500 });
-      j.particles(d.x, d.y, { count: 10, emoji: '🥟', speed: 450, size: 34, gravity: 500 });
-      j.floatText(d.x, d.y - 70, d.out ? 'AUW MIJN KROKET' : 'BOEM!', { color: '#ff9f1c', size: 52 });
-      j.floatText(d.x, d.y - 130, f.t(nm(d.id)), { color: '#fff', size: 32, life: 2 });
-      if (d.id === party.me) j.vibrate(300);
+      j.particles(d.x, d.y, { count: 18, colors: ['#ff9f1c', '#ffd166', '#ff4d6d', '#fff'], speed: 700, size: 16, life: 0.5 });
+      j.particles(d.x, d.y, { count: 8, emoji: '🥟', speed: 500, size: 11, gravity: 600, life: 0.9 });
+      if (d.id === me) j.vibrate(300);
+      say(j, d.x, by - 85, d.out ? 'AUW MIJN KROKET' : 'BOEM!', { color: '#ff9f1c', size: 62, life: 1.0, rise: 50 });
+      later(0.4, () => {
+        j.sfx(f.s, { vol: 0.7 });
+        j.particles(d.x, d.y, { count: 12, emoji: f.e, speed: 650, size: 18, gravity: 700, life: 1.3, angle: -Math.PI / 2, spread: Math.PI * 1.2 });
+        say(j, d.x, by + 5, f.t(nm(d.id)), { color: '#fff', size: 44, life: 2.4, rise: 40 });
+      });
+      if (!d.out) later(0.85, () => {
+        const l = lastS?.p?.[d.id]?.lives;
+        if (l > 0) say(j, d.x, by + 85, `💔 Nog ${l} ${l === 1 ? 'leven' : 'levens'}`, { color: '#ff8fa3', size: 40, life: 1.4, rise: 30 });
+      });
     }
+    if (name === 'spook') later(0.85, () => {
+      j.sfx('lose', { vol: 0.8 });
+      j.particles(d.x, d.y, { count: 10, emoji: '👻', speed: 200, size: 10, gravity: -150, life: 1 });
+      say(j, d.x, bandY(d.y) + 85, '👻 SPOOK!', { color: '#cdb4ff', size: 46, life: 1.4, rise: 30 });
+    });
+    if (name === 'uit' && d.left >= 2) later(1.3, () => {
+      const s = seen[d.id], y = s && s.y > CY ? Y0 + 150 : Y1 - 220; // op de andere helft dan de BOEM
+      if (d.left === 2) { j.sfx('go'); say(j, CX, y, 'FINALE! Nog 2 🔥', { color: '#ffd166', size: 62, life: 1.8, rise: 40 }); }
+      else { j.sfx('pop', { pitch: 0.7 }); say(j, CX, y, `Nog ${d.left}!`, { color: '#fff', size: 62, life: 1.6, rise: 40 }); }
+    });
+
+    // 🐔 de kip: iedereen ziet voor wie hij komt; het doelwit trilt en ziet rood
     if (name === 'kip') {
-      j.sfx('quack'); j.particles(d.x, d.y, { count: 10, emoji: '🪶', speed: 300 });
-      if (!d.again) j.floatText(CX, CY, 'HIJ KOMT! 🐔', { color: '#ffd166', size: 64, life: 1.5 });
-      if (d.target === party.me) j.vibrate(150);
+      const mine = d.target === me;
+      j.sfx('quack'); later(0.16, () => j.sfx('quack', { pitch: 1.25 }));
+      j.particles(d.x, d.y, { count: 12, emoji: '🪶', speed: 320, size: 10, life: 0.9, gravity: 200 });
+      if (!d.again) say(j, CX, CY - 150, mine ? '🐔 HIJ KOMT VOOR JOU!' : `🐔 HIJ KOMT VOOR ${nm(d.target).toUpperCase()}!`, { color: mine ? '#ff4d6d' : '#ffd166', size: 62, life: 1.8, rise: 40 });
+      else say(j, CX, CY - 150, mine ? '🐔 NU WIL HIJ JOU!' : `🐔 Nieuw doelwit: ${nm(d.target)}!`, { color: mine ? '#ff4d6d' : '#ffd166', size: 48, life: 1.4, rise: 40 });
+      if (mine) { j.vibrate([150, 60, 150]); j.flash('rgba(255,30,30,.45)', 0.45); j.shake(8, 0.4); }
     }
-    if (name === 'kipgrab') { j.sfx('toet'); j.shake(6, 0.3); j.floatText(d.x, d.y - 80, 'KAKEL!', { color: '#ffd166', size: 44 }); }
+    if (name === 'kipgrab') {
+      clearPas();
+      j.sfx('toet'); j.sfx('quack', { pitch: 0.8 }); j.shake(6, 0.3);
+      j.particles(d.x, d.y, { count: 10, emoji: '🪶', speed: 300, size: 10, life: 0.8, gravity: 150 });
+      say(j, d.x, d.y - 140, 'KAKEL!', { color: '#ffd166', size: 46, life: 1, rise: 25 });
+      later(0.35, () => say(j, d.x, d.y - 80, d.target ? 'GEPAKT! 🎯' : 'Pech, in de weg! 🙃', { color: '#fff', size: 36, life: 1.1, rise: 20 }));
+      if (d.id === me) { j.vibrate(120); j.flash('rgba(255,140,40,.3)', 0.25); }
+    }
     if (name === 'kipop') {
-      j.sfx('boing'); j.particles(d.kx, d.ky, { count: 8, emoji: '🪶', speed: 250 });
-      j.floatText(d.kx, d.ky - 60, 'Pff, ik geef het op 🐔', { color: '#ffd166', size: 34 });
-      j.floatText(d.x, d.y - 90, d.back ? 'TERUG NAAR JOU! 🙃' : 'Alsjeblieft! 🥟', { color: '#fff', size: 36 });
+      clearPas();
+      j.sfx('boing', { pitch: 0.7 });
+      j.particles(d.kx, d.ky, { count: 10, emoji: '🪶', speed: 250, size: 10, life: 1, gravity: 150 });
+      say(j, d.kx, d.ky - 145, 'Pff, ik geef het op 🐔', { color: '#ffd166', size: 36, life: 1.5, rise: 25 });
+      trail(j, d.kx, d.ky - 40, d.x, d.y - 60, { colors: ['#ffd166', '#b5651d'], size: 12 });
+      const t = seen[d.target];
+      if (t && d.target !== d.id) later(0.4, () => say(j, t.x, t.y - 80, 'ONTSNAPT! 😅', { color: '#7dffa8', size: 38, life: 1.2, rise: 20 }));
+      if (d.target === me && d.id !== me) later(0.4, () => j.sfx('coin'));
+      later(0.6, () => {
+        j.sfx('pop', { pitch: 0.8 });
+        say(j, d.x, d.y - 100, d.back ? 'TERUG NAAR JOU! 🙃' : 'Alsjeblieft! 🥟', { color: '#fff', size: 38 });
+        if (d.id === me) j.vibrate(100);
+      });
     }
-    if (name === 'banaan') j.sfx('pop');
+
+    // 🍌 bananen
+    if (name === 'banaan') {
+      j.sfx('pop', { pitch: 1.3, vol: 0.5 });
+      later(BANANA_ARM, () => j.particles(d.x, d.y + 22, { count: 6, colors: ['#fff', '#e6d2ae'], speed: 120, size: 10, life: 0.35 }));
+    }
     if (name === 'spookbanaan') {
-      j.sfx('pop', { pitch: 0.7 }); j.particles(d.x, d.y, { count: 6, emoji: '👻', speed: 150, size: 26, gravity: -100 });
-      j.floatText(d.x, d.y - 50, '🍌 hihi', { color: '#cdb4ff', size: 30 });
+      j.sfx('prrt', { vol: d.id === me ? 0.5 : 0.3, pitch: 1.1 + Math.random() * 0.5 });
+      j.particles(d.x, d.y, { count: 8, colors: ['#cdb4ff', '#fff', '#a98bff'], speed: 160, size: 10, life: 0.7 });
+      say(j, d.x, d.y - 70, pickBy(['🍌 hihi', '🍌 Oepsie!', '🍌 Voor jou!', '🍌 Kijk uit!'], d.x + d.y), { color: '#cdb4ff', size: 32, life: 1.1, rise: 50 });
     }
     if (name === 'slip') {
-      j.sfx('boing'); j.particles(d.x, d.y, { count: 8, emoji: '🍌', speed: 300, size: 30 });
-      j.floatText(d.x, d.y - 60, d.by ? 'SPOOKBANAAN!' : 'UITGEGLEDEN!', { color: d.by ? '#cdb4ff' : '#ffe066', size: 36 });
-      if (d.id === party.me) j.vibrate(120);
+      j.sfx('boing', { pitch: 0.9 + Math.random() * 0.3 });
+      j.particles(d.x, d.y, { count: 8, emoji: '🍌', speed: 300, size: 10 });
+      say(j, d.x, d.y - 70, d.by ? 'SPOOKBANAAN! 👻' : 'UITGEGLEDEN!', { color: d.by ? '#cdb4ff' : '#ffe066', size: 38 });
+      if (d.id === me) { j.vibrate(120); j.shake(5, 0.3); }
+      if (d.by && d.by === me) j.sfx('coin', { vol: 0.6 });
     }
-    if (name === 'spook') { j.sfx('lose'); j.particles(d.x, d.y, { count: 10, emoji: '👻', speed: 200, size: 30, gravity: -150 }); j.floatText(d.x, d.y - 40, '👻 SPOOK!', { color: '#cdb4ff', size: 44 }); }
-    if (name === 'weg') { j.particles(d.x, d.y, { count: 8, emoji: '👻', speed: 150, size: 28, gravity: -150 }); j.floatText(d.x, d.y - 60, `${nm(d.id)} is weg 👋`, { color: '#cdb4ff', size: 36 }); }
+
+    // 👻 spoken
     if (name === 'gooi') {
+      clearPas();
       j.sfx('whoosh'); j.sfx('toet');
-      j.floatText(d.x, d.y - 90, 'SPOOK-GOOI!', { color: '#cdb4ff', size: 44 });
-      j.floatText(d.x, d.y - 140, `${nm(d.to).toUpperCase()} NEE!`, { color: '#fff', size: 34 });
+      const a = seen[d.from], g = seen[d.by];
+      if (a) trail(j, a.x, a.y - 60, d.x, d.y - 60, { colors: ['#cdb4ff', '#fff', '#ffd166'], size: 13 });
+      if (g) j.particles(g.x, g.y, { count: 8, emoji: '👻', speed: 160, size: 9, gravity: -120, life: 0.8 });
+      say(j, d.x, d.y - 145, 'SPOOK-GOOI! 👻', { color: '#cdb4ff', size: 46, life: 1.3, rise: 25 });
+      later(0.4, () => say(j, d.x, d.y - 85, `${nm(d.to).toUpperCase()} NEE!`, { color: '#fff', size: 40, life: 1.3, rise: 20 }));
+      if (d.to === me) { j.vibrate(150); j.flash('rgba(180,140,255,.4)', 0.35); j.shake(6, 0.3); }
+      if (d.from === me) j.sfx('coin', { vol: 0.5, pitch: 1.2 });
     }
-    if (name === 'uit') j.floatText(CX, CY - 200, `Nog ${d.left}!`, { color: '#fff', size: 56, life: 1.8 });
-    if (name === 'sudden') { j.sfx('go'); j.flash('#ff4d6d', 0.5); j.floatText(CX, CY, 'SUDDEN DEATH!', { color: '#ff4d6d', size: 72, life: 2 }); }
+    if (name === 'weg') {
+      j.sfx('whoosh', { pitch: 0.6, vol: 0.6 });
+      j.particles(d.x, d.y, { count: 8, emoji: '💨', speed: 200, size: 10, life: 0.7 });
+      j.particles(d.x, d.y, { count: 6, emoji: '👻', speed: 150, size: 9, gravity: -150, life: 1 });
+      say(j, d.x, d.y - 80, `${nm(d.id)} is even weg 👋`, { color: '#cdb4ff', size: 36, life: 1.8, rise: 40 });
+    }
+    if (name === 'sudden') {
+      j.sfx('go'); j.shake(10, 0.5); j.flash('#ff4d6d', 0.5);
+      say(j, CX, CY - 60, 'SUDDEN DEATH!', { color: '#ff4d6d', size: 76, life: 2 });
+      later(0.6, () => say(j, CX, CY + 40, 'Elke kroket: 3 tellen! ⚡', { color: '#fff', size: 40, life: 1.8, rise: 30 }));
+    }
   },
 
   // ----- alle apparaten: tekenen -----
   render(c, S, party) {
     if (!S.p) return;
+    lastS = S;
     const now = performance.now();
-    // geruite keukenvloer
-    c.fillStyle = '#f2e6cf'; c.fillRect(0, 0, W, H);
-    c.fillStyle = '#e6d2ae';
-    for (let y = 0; y < H / 100; y++) for (let x = 0; x < W / 100; x++) if ((x + y) % 2) c.fillRect(x * 100, y * 100, 100, 100);
-    // keukentegels boven de vloer (hier kan de kroket boven je hoofd nog zweven)
-    c.fillStyle = '#dfeaec'; c.fillRect(0, HUD_H, W, WALL_Y - HUD_H);
-    c.strokeStyle = 'rgba(110,140,150,.35)'; c.lineWidth = 3; c.beginPath();
-    for (let x = 0; x <= W; x += 60) { c.moveTo(x, HUD_H); c.lineTo(x, WALL_Y); }
-    for (let y = HUD_H + 35; y < WALL_Y; y += 35) { c.moveTo(0, y); c.lineTo(W, y); }
-    c.stroke();
-    c.lineWidth = 20; c.strokeStyle = '#5a3720'; c.strokeRect(10, WALL_Y + 10, W - 20, H - WALL_Y - 20);
-    c.lineWidth = 4; c.strokeStyle = '#a8703f'; c.strokeRect(22, WALL_Y + 22, W - 44, H - WALL_Y - 44);
+    const me = party.me;
+    drawKitchen(c);
     c.textAlign = 'center'; c.textBaseline = 'middle';
+
     // knop: "Sprint" voor levenden, "👻 Gooi" of "🍌 Leg" voor spoken
-    const mineP = S.p[party.me];
-    const act = mineP?.ghost ? ghostAction(S, party.me) : null;
+    const mineP = S.p[me];
+    const act = mineP?.ghost ? ghostAction(S, me) : null;
     let btn = 'Sprint';
     if (mineP?.ghost) btn = act === 'gooi' ? '👻 Gooi' : act === 'banaan' ? '🍌 Leg' : mineP.gb > 0 ? `🍌 ${Math.ceil(mineP.gb)}` : '👻';
     party.setButtonLabel?.(0, btn);
@@ -567,151 +673,278 @@ startGame({
       else if (!mineP.threw && lateForThrow(S)) t = act === 'banaan' ? 'Te laat om te gooien! 👻 Wel een 🍌' : 'Te laat om te gooien! 👻';
       else if (act === 'banaan') t = '👻 Knop / spatie = 🍌 neerleggen!';
       else t = `👻 Volgende 🍌 over ${Math.ceil(mineP.gb)} s`;
-      c.font = `700 32px ${FONT}`; c.fillStyle = '#cdb4ff'; c.lineWidth = 6; c.strokeStyle = 'rgba(0,0,0,.7)';
-      c.strokeText(t, CX, BAND_Y); c.fillText(t, CX, BAND_Y);
+      const go = act === 'gooi' && Math.floor(now / 300) % 2;
+      tag(c, t, CX, BAND_Y, 34, go ? '#fff' : '#e9e0ff', go ? 'rgba(110,60,200,.92)' : 'rgba(40,20,70,.85)', '#cdb4ff');
     } else if (mineP && mineP.rs > 0) {
-      c.font = `700 36px ${FONT}`; c.fillStyle = '#6b4226'; c.fillText('Even opscharrelen… 🧺', CX, BAND_Y);
+      tag(c, 'Even opscharrelen… 🧺', CX, BAND_Y, 34, '#fff', 'rgba(70,40,20,.88)', '#ffd166');
     }
 
     if (S.phase === 'slow') { c.fillStyle = `rgba(255,40,40,${0.12 + 0.1 * Math.sin(now / 60)})`; c.fillRect(0, 0, W, H); }
 
-    // bananen (een vallende banaan is nog niet glad; een spook-banaan heeft een spookje)
-    c.textAlign = 'center'; c.textBaseline = 'middle';
+    // bananen: vallen eerst (nog niet glad); een spook-banaan heeft een paars rondje in de kleur van het spook
     for (const b of S.bananas) {
-      const fall = b.a > 0 ? b.a / BANANA_ARM : 0;
-      c.globalAlpha = 1 - fall * 0.5;
-      c.fillStyle = 'rgba(0,0,0,.15)'; c.beginPath(); c.ellipse(b.x, b.y + 26, 28 * (1 - fall * 0.5), 10, 0, 0, Math.PI * 2); c.fill();
-      c.save(); c.translate(b.x, b.y + Math.sin(now / 250 + b.x) * 4 - fall * 60); c.rotate(Math.sin(now / 300 + b.y) * 0.25);
+      const fall = b.a > 0 ? b.a / BANANA_ARM : 0, drop = fall * fall * 170, sh = 1 - fall * 0.6;
+      c.fillStyle = 'rgba(0,0,0,.16)'; c.beginPath(); c.ellipse(b.x, b.y + 26, 28 * sh, 10 * sh, 0, 0, TAU); c.fill();
+      if (b.g) {
+        c.save(); c.translate(b.x, b.y + 6); c.rotate(now / 900);
+        c.fillStyle = 'rgba(205,180,255,.35)'; c.strokeStyle = party.player(b.g)?.color || '#a98bff'; c.lineWidth = 5;
+        c.setLineDash([12, 10]); c.beginPath(); c.arc(0, 0, 42, 0, TAU); c.fill(); c.stroke(); c.setLineDash([]);
+        c.restore();
+      }
+      c.save(); c.translate(b.x, b.y - drop + Math.sin(now / 250 + b.x) * 4); c.rotate(Math.sin(now / 300 + b.y) * 0.25 + fall * 5);
       c.font = `54px ${EMOJI}`; c.fillStyle = '#000'; c.fillText('🍌', 0, 0); c.restore();
-      if (b.g) { c.font = `26px ${EMOJI}`; c.fillText('👻', b.x + 26, b.y - 24); }
-      c.globalAlpha = 1;
+      if (b.g && !fall) { // spookje op een paars rondje, zodat je hem ook op de lichte vloer ziet
+        const gy = b.y - 36 + Math.sin(now / 300 + b.x) * 5;
+        c.fillStyle = '#6a4fc8'; c.strokeStyle = '#fff'; c.lineWidth = 3; c.beginPath(); c.arc(b.x + 34, gy, 20, 0, TAU); c.fill(); c.stroke();
+        c.font = `28px ${EMOJI}`; c.fillStyle = '#000'; c.fillText('👻', b.x + 34, gy + 1);
+      }
     }
 
-    // spelers: eerst spoken, dan levenden (zodat de bom bovenop komt)
-    const entries = Object.entries(S.p).sort((a, b) => (b[1].ghost ? 1 : 0) - (a[1].ghost ? 1 : 0));
     const ratio = clamp(S.fuse / S.fuseMax, 0, 1);
+    const ck = S.chicken, hunt = ck?.target;
+    const kp = ck ? party.smooth('kip', ck.x, ck.y) : null;
+    // kip-doellijn: rode streepjes van de kip naar zijn doelwit
+    if (kp && seen[hunt]) {
+      const t = seen[hunt];
+      c.strokeStyle = 'rgba(255,45,85,.55)'; c.lineWidth = 6; c.setLineDash([18, 14]); c.lineDashOffset = -now / 25;
+      c.beginPath(); c.moveTo(kp.x, kp.y); c.lineTo(t.x, t.y); c.stroke(); c.setLineDash([]); c.lineDashOffset = 0;
+    }
+
+    // 1. lichamen: eerst spoken, dan levenden
+    const entries = Object.entries(S.p).sort((a, b) => (b[1].ghost ? 1 : 0) - (a[1].ghost ? 1 : 0));
     for (const [id, p] of entries) {
       const pos = party.smooth(id, p.x, p.y);
-      if (p.rs > 0) continue;
-      const pr = party.player(id);
-      const mine = id === party.me;
-      const isHolder = id === S.holder;
-      c.globalAlpha = p.ghost ? 0.45 : (p.shield > 0 && Math.floor(now / 100) % 2 ? 0.45 : 1);
+      if (p.rs > 0) { delete seen[id]; continue; }
+      const pr = party.player(id), mine = id === me, isHolder = id === S.holder;
       let px = pos.x, py = pos.y;
       if (isHolder && S.phase === 'slow') { px += Math.sin(now / 15) * 5; py += Math.cos(now / 17) * 5; }
+      seen[id] = { x: px, y: py };
+      const ph = (id.charCodeAt(0) + id.length * 7) % 10;
+      c.globalAlpha = p.ghost ? 0.45 : (p.shield > 0 && Math.floor(now / 100) % 2 ? 0.45 : 1);
       c.fillStyle = 'rgba(0,0,0,.18)';
-      c.beginPath(); c.ellipse(px, py + R * 0.8, R * 0.9, R * 0.35, 0, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.ellipse(px, py + R * 0.8, R * (p.ghost ? 0.6 : 0.9), R * (p.ghost ? 0.22 : 0.35), 0, 0, TAU); c.fill();
+      // VEILIG: groene bubbel (knippert vlak voor het einde)
+      if (!p.ghost && p.safe > 0 && !isHolder) {
+        const a = c.globalAlpha;
+        c.globalAlpha = a * (p.safe < 0.5 && Math.floor(now / 90) % 2 ? 0.35 : 1);
+        c.fillStyle = 'rgba(120,230,160,.3)'; c.strokeStyle = '#2b9348'; c.lineWidth = 5;
+        c.beginPath(); c.arc(px, py, R + 13, 0, TAU); c.fill(); c.stroke();
+        c.globalAlpha = a;
+      }
       if (isHolder) { // gloeiende ring: wie heeft hem
         c.strokeStyle = `hsl(${50 - 50 * (1 - ratio)},100%,55%)`; c.lineWidth = 10 + Math.sin(now / (S.phase === 'slow' ? 40 : 150)) * 4;
-        c.beginPath(); c.arc(px, py, R + 12, 0, Math.PI * 2); c.stroke();
+        c.beginPath(); c.arc(px, py, R + 12, 0, TAU); c.stroke();
       }
-      const ph = (id.charCodeAt(0) + id.length * 7) % 10;
+      if (id === hunt) { // rood vizier: hier gaat de kip heen
+        c.save(); c.translate(px, py); c.rotate(now / 500);
+        c.strokeStyle = '#ff2d55'; c.lineWidth = 6;
+        c.beginPath(); c.arc(0, 0, R + 18, 0, TAU);
+        for (let i = 0; i < 4; i++) { const a = (i * Math.PI) / 2; c.moveTo(Math.cos(a) * (R + 6), Math.sin(a) * (R + 6)); c.lineTo(Math.cos(a) * (R + 32), Math.sin(a) * (R + 32)); }
+        c.stroke(); c.restore();
+      }
+      // lijf: wiebelt (de houder zenuwachtig snel), spoken zweven
       const wob = p.ghost ? Math.sin(now / 400 + ph) * 8 : Math.sin(now / (isHolder ? 90 : 220) + ph) * (isHolder ? 0.07 : 0.035);
       const sx = p.ghost ? 1 : 1 + wob, sy = p.ghost ? 1 : 1 - wob;
       c.save(); c.translate(px, py + (p.ghost ? wob : 0)); c.scale(sx, sy);
       c.fillStyle = pr?.color || '#fff';
-      c.beginPath(); c.arc(0, 0, R, 0, Math.PI * 2); c.fill();
-      c.fillStyle = 'rgba(255,255,255,.28)'; c.beginPath(); c.ellipse(-R * 0.3, -R * 0.4, R * 0.4, R * 0.2, -0.5, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.arc(0, 0, R, 0, TAU); c.fill();
+      c.fillStyle = 'rgba(255,255,255,.28)'; c.beginPath(); c.ellipse(-R * 0.3, -R * 0.4, R * 0.4, R * 0.2, -0.5, 0, TAU); c.fill();
+      c.beginPath(); c.arc(0, 0, R, 0, TAU);
       c.lineWidth = mine ? 9 : 5; c.strokeStyle = mine ? '#fff' : 'rgba(0,0,0,.4)'; c.stroke();
       c.restore();
-      c.save(); c.translate(px, py);
+      c.save(); c.translate(px, py + (p.ghost ? wob : 0));
       if (p.slip > 0) c.rotate(now / 80);
       c.font = `46px ${EMOJI}`; c.fillStyle = '#000';
       c.fillText(p.ghost ? '👻' : pr?.emoji || '🙂', 0, 3);
       c.restore();
-      c.globalAlpha = p.ghost ? 0.7 : 1;
-      c.font = `700 28px ${FONT}`; c.lineWidth = 6; c.strokeStyle = 'rgba(0,0,0,.6)'; c.fillStyle = mine ? '#ffe066' : '#fff';
-      const label = (mine ? '▲ ' : '') + (pr?.name || '');
-      c.strokeText(label, px, py + R + 28); c.fillText(label, px, py + R + 28);
-      const hearts = S.ml > 1 && !p.ghost;
-      if (hearts) { c.font = `26px ${EMOJI}`; c.fillText('❤️'.repeat(Math.max(0, p.lives)), px, isHolder ? py + R + 58 : py - R - 22); }
-      // VEILIG-bordje: net doorgegeven, je kunt hem even niet terugkrijgen
-      if (!p.ghost && p.safe > 0 && !isHolder) {
-        c.globalAlpha = 1;
-        const sy2 = py - R - (hearts ? 62 : 26);
-        c.font = `700 28px ${FONT}`;
-        const tw = c.measureText('VEILIG').width + 26;
-        c.fillStyle = 'rgba(255,255,255,.95)'; c.strokeStyle = '#2b9348'; c.lineWidth = 4;
-        c.beginPath(); c.roundRect(px - tw / 2, sy2 - 19, tw, 38, 10); c.fill(); c.stroke();
-        c.fillStyle = '#2b9348'; c.fillText('VEILIG', px, sy2 + 1);
-      }
       // sprint-indicator bij jezelf
       if (mine && !p.ghost && p.cd > 0) {
         c.globalAlpha = 0.9; c.strokeStyle = '#2b9348'; c.lineWidth = 6;
-        c.beginPath(); c.arc(px, py, R + 22, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - p.cd / SPRINT_CD)); c.stroke();
-      }
-      // de kroket zelf vlak boven de houder: zwelt op en wordt rood (blijft onder de bovenbalk)
-      if (isHolder) {
-        c.globalAlpha = 1;
-        const sz = 56 * (1 + 0.6 * (1 - ratio)) * (S.phase === 'slow' ? 1 + Math.sin(now / 40) * 0.1 : 1);
-        drawBomb(c, px, py - R - 6 - sz * 0.31, sz, ratio, now, S.phase === 'slow');
+        c.beginPath(); c.arc(px, py, R + 22, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - p.cd / SPRINT_CD)); c.stroke();
       }
       c.globalAlpha = 1;
     }
 
-    // kip
-    if (S.chicken) {
-      const k = party.smooth('kip', S.chicken.x, S.chicken.y);
-      c.fillStyle = 'rgba(0,0,0,.18)'; c.beginPath(); c.ellipse(k.x, k.y + 42, 40, 13, 0, 0, Math.PI * 2); c.fill();
-      c.font = `80px ${EMOJI}`; c.fillStyle = '#000';
-      const kb = Math.abs(Math.sin(now / 90)) * 14;
-      c.fillText('🐔', k.x, k.y - kb);
-      drawBomb(c, k.x + 36, k.y - 48 - kb, 50, clamp(S.fuse / S.fuseMax, 0, 1), now, false);
+    // 2. namen, hartjes, VEILIG-bordje, JIJ en 🎯 (boven op alle lijven, zodat je ze altijd kunt lezen)
+    const nameSize = Math.round(clamp(12.5 / (party.screen?.scale || 0.4), 32, 40));
+    let bomb = null;
+    const labels = entries.filter(([id]) => id !== me).concat(entries.filter(([id]) => id === me)); // jouw naam bovenop
+    for (const [id, p] of labels) {
+      const s = seen[id];
+      if (!s || p.rs > 0) continue;
+      const px = s.x, py = s.y;
+      const pr = party.player(id), mine = id === me, isHolder = id === S.holder;
+      const hearts = S.ml > 1 && !p.ghost ? '❤️'.repeat(Math.max(0, p.lives)) : '';
+      const heartsBelow = isHolder && hearts;
+      // te dicht bij de ondermuur: dan komt de naam boven het hoofd
+      const low = py + R + nameSize * 1.3 + (heartsBelow ? 34 : 0) > H - 8;
+      let up = py - R - 8; // alles boven het hoofd stapelen we van onder naar boven
+      const stack = (h) => { const y = up - h / 2; up -= h + 4; return y; };
+      const label = (mine ? '▲ ' : '') + (pr?.name || '');
+      const ns = p.ghost && !mine ? Math.round(nameSize * 0.8) : nameSize; // spoken zijn minder belangrijk
+      c.font = `700 ${ns}px ${FONT}`;
+      const hw = c.measureText(label).width / 2 + 6;
+      const lx = clamp(px, hw + 16, W - hw - 16);
+      const ly = low ? stack(ns + 2) : py + R + ns * 0.72;
+      c.globalAlpha = p.ghost ? 0.75 : 1;
+      c.lineWidth = ns * 0.22; c.lineJoin = 'round'; c.strokeStyle = 'rgba(0,0,0,.72)';
+      c.fillStyle = p.ghost ? '#d9ccff' : mine ? '#ffe066' : '#fff';
+      c.strokeText(label, lx, ly); c.fillText(label, lx, ly);
+      c.globalAlpha = 1;
+      if (isHolder) { // de kroket: zwelt op en wordt rood; valt even op zijn plek bij een nieuwe houder
+        const sz = 56 * (1 + 0.6 * (1 - ratio)) * (S.phase === 'slow' ? 1 + Math.sin(now / 40) * 0.1 : 1);
+        const drop = p.lock > 0 ? (p.lock / LOCK) ** 2 * 70 : 0;
+        bomb = { x: clamp(px, sz * 0.65, W - sz * 0.65), y: stack(sz * 0.85) + sz * 0.08 - drop, sz }; // ruimte voor lont en vonkje
+      }
+      if (hearts) {
+        c.font = `30px ${EMOJI}`; c.fillStyle = '#000';
+        c.fillText(hearts, clamp(px, 60, W - 60), heartsBelow && !low ? ly + nameSize * 0.5 + 20 : stack(32));
+      }
+      if (!p.ghost && p.safe > 0 && !isHolder) drawSafe(c, px, stack(46), p.safe, now);
+      if (mine && !p.ghost && S.elapsed < 5 && S.phase !== 'fin') {
+        const y = Math.max(HUD_H + 28, stack(44) - Math.abs(Math.sin(now / 160)) * 10);
+        c.font = `700 36px ${FONT}`; c.lineWidth = 8; c.strokeStyle = 'rgba(0,0,0,.75)'; c.fillStyle = '#ffe066';
+        c.strokeText('▼ JIJ', clamp(px, 70, W - 70), y); c.fillText('▼ JIJ', clamp(px, 70, W - 70), y);
+      }
+      if (id === hunt) {
+        const y = Math.max(HUD_H + 32, stack(56) - Math.abs(Math.sin(now / 150)) * 12);
+        c.font = `56px ${EMOJI}`; c.fillStyle = '#000'; c.fillText('🎯', clamp(px, 40, W - 40), y);
+      }
     }
 
-    // bovenbalk: wie heeft hem en de lont
-    c.fillStyle = 'rgba(40,24,12,.92)'; c.fillRect(0, 0, W, HUD_H);
+    // 3. de kip: fladdert eerst op de plek (met een ❗), rent dan kakelend naar zijn doelwit
+    if (kp) {
+      const wind = ck.age < CHICKEN_WINDUP;
+      const kb = wind ? Math.abs(Math.sin(now / 45)) * 24 : Math.abs(Math.sin(now / 90)) * 14;
+      c.fillStyle = 'rgba(0,0,0,.18)'; c.beginPath(); c.ellipse(kp.x, kp.y + 42, 40 - kb, 13, 0, 0, TAU); c.fill();
+      c.save(); c.translate(kp.x, kp.y - kb); c.rotate(Math.sin(now / (wind ? 35 : 110)) * (wind ? 0.3 : 0.12));
+      c.font = `84px ${EMOJI}`; c.fillStyle = '#000'; c.fillText('🐔', 0, 0); c.restore();
+      drawBomb(c, kp.x + 38, kp.y - 52 - kb, 50, ratio, now, false);
+      if (wind) { c.font = `48px ${EMOJI}`; c.fillText('❗', kp.x - 40, kp.y - 70 - kb); }
+    }
+
+    // 4. de kroket boven de houder, bovenop alles
+    if (bomb) drawBomb(c, bomb.x, bomb.y, bomb.sz, ratio, now, S.phase === 'slow');
+
+    // 5. bovenbalk: hoeveel er nog over zijn, wie heeft hem en de lont
+    c.fillStyle = 'rgba(40,24,12,.95)'; c.fillRect(0, 0, W, HUD_H);
+    c.fillStyle = '#ffd166'; c.fillRect(0, HUD_H - 4, W, 4);
     c.textAlign = 'center'; c.textBaseline = 'middle';
-    const kipMe = S.chicken?.target === party.me;
+    const kipMe = hunt === me;
     let line = '';
     if (S.phase === 'intro') line = 'Kroket in aantocht… 🥟';
-    else if (S.phase === 'pause') line = 'Volgende kroket! 🥟';
+    else if (S.phase === 'pause') line = `Volgende kroket over ${Math.max(1, Math.ceil(S.pause))}… 🥟`;
     else if (S.phase === 'fin') line = 'En dat was het! 🥟';
-    else if (S.chicken) line = kipMe ? '🐔 DE KIP WIL JOU! Rennen!' : `🐔 De kip zoekt ${nameOf(party, S.chicken.target)}!`;
-    else if (S.holder === party.me) line = 'JIJ HEBT HEM! Geef door! 🥟';
+    else if (ck) line = kipMe ? '🐔 DE KIP WIL JOU! Rennen!' : `🐔 De kip zoekt ${nameOf(party, hunt)}!`;
+    else if (S.holder === me) line = 'JIJ HEBT HEM! Geef door! 🥟';
     else if (S.holder) line = `🥟 ${nameOf(party, S.holder)} heeft hem!`;
-    c.font = `700 40px ${FONT}`;
-    c.fillStyle = (S.holder === party.me || kipMe) && Math.floor(now / 200) % 2 ? '#ff6b6b' : '#fff';
+    let fs = 44;
+    c.font = `700 ${fs}px ${FONT}`;
+    const lw = c.measureText(line).width, maxW = W - 440;
+    if (lw > maxW) { fs = Math.floor((fs * maxW) / lw); c.font = `700 ${fs}px ${FONT}`; }
+    c.fillStyle = (S.holder === me || kipMe) && Math.floor(now / 200) % 2 ? '#ff6b6b' : '#fff';
     c.fillText(line, CX, 36);
-    if (S.sd) { c.font = `700 28px ${FONT}`; c.fillStyle = '#ff4d6d'; c.textAlign = 'right'; c.fillText('SUDDEN DEATH', W - 20, 36); c.textAlign = 'center'; }
+    c.textAlign = 'left'; c.font = `700 34px ${FONT}`; c.fillStyle = '#ffd166';
+    c.fillText(`👥 ${living(S).length}`, 22, 36);
+    if (S.sd) { c.font = `700 28px ${FONT}`; c.fillStyle = '#ff4d6d'; c.textAlign = 'right'; c.fillText('SUDDEN DEATH', W - 20, 36); }
+    c.textAlign = 'center';
     // lontbalk
     if (S.phase === 'play' || S.phase === 'slow') {
-      c.fillStyle = 'rgba(255,255,255,.2)'; c.fillRect(60, 70, W - 120, 26);
-      c.fillStyle = `hsl(${50 * ratio},100%,55%)`; c.fillRect(60, 70, (W - 120) * ratio, 26);
-      c.strokeStyle = '#fff'; c.lineWidth = 3; c.strokeRect(60, 70, W - 120, 26);
-      c.font = `${34 + (ratio < 0.3 ? Math.sin(now / 60) * 6 : 0)}px ${EMOJI}`; c.fillStyle = '#000'; c.fillText('💥', 60 + (W - 120) * ratio, 84);
+      c.fillStyle = 'rgba(255,255,255,.18)'; c.beginPath(); c.roundRect(60, 68, W - 120, 26, 13); c.fill();
+      if (ratio > 0) { c.fillStyle = `hsl(${50 * ratio},100%,55%)`; c.beginPath(); c.roundRect(60, 68, Math.max(26, (W - 120) * ratio), 26, 13); c.fill(); }
+      c.strokeStyle = '#fff'; c.lineWidth = 3; c.beginPath(); c.roundRect(60, 68, W - 120, 26, 13); c.stroke();
+      c.font = `${34 + (ratio < 0.3 ? Math.sin(now / 60) * 6 : 0)}px ${EMOJI}`; c.fillStyle = '#000'; c.fillText('💥', 60 + (W - 120) * ratio, 82);
+    }
+
+    // 6. de kip moet JOU hebben: knipperende rode rand om het hele scherm
+    if (kipMe) {
+      c.strokeStyle = `rgba(255,23,68,${0.6 + 0.3 * Math.sin(now / 90)})`; c.lineWidth = 40;
+      c.strokeRect(20, 20, W - 40, H - 40);
     }
 
     // terug na verbindingsverlies: duidelijk zeggen dat je nu spook bent
     if (mineP?.away && mineP.ghost) {
       if (!awaySince) awaySince = now;
-      if (now - awaySince < AWAY_MSG_MS) {
-        const t = 'Je was even weg: je bent nu een spook 👻';
-        c.font = `700 40px ${FONT}`;
-        const tw = c.measureText(t).width + 60;
-        c.fillStyle = 'rgba(30,18,50,.88)'; c.strokeStyle = '#cdb4ff'; c.lineWidth = 5;
-        c.beginPath(); c.roundRect(CX - tw / 2, CY - 50, tw, 100, 22); c.fill(); c.stroke();
-        c.fillStyle = '#fff'; c.fillText(t, CX, CY + 2);
-      }
+      if (now - awaySince < AWAY_MSG_MS) tag(c, 'Je was even weg: je bent nu een spook 👻', CX, CY, 40, '#fff', 'rgba(30,18,50,.9)', '#cdb4ff');
     } else awaySince = 0;
   },
 });
 
-// ----- kroket-bom tekenen: bruin met lont en vonk, wordt rood vlak voor BOEM -----
+// ----- keuken: geruite vloer, metrotegels boven de vloer en een houten rand -----
+function drawKitchen(c) {
+  c.fillStyle = '#f2e6cf'; c.fillRect(0, 0, W, H);
+  c.fillStyle = '#e6d2ae';
+  for (let y = 2; y < H / 100; y++) for (let x = 0; x < W / 100; x++) if ((x + y) % 2) c.fillRect(x * 100, y * 100, 100, 100);
+  // metrotegels (een paar net iets donkerder), met voegen
+  const TH = 35, TW = 80;
+  c.fillStyle = '#e4eff1'; c.fillRect(0, HUD_H, W, WALL_Y - HUD_H);
+  c.fillStyle = '#d4e3e7';
+  for (let r = 0; r * TH < WALL_Y - HUD_H; r++) {
+    const off = r % 2 ? TW / 2 : 0;
+    for (let i = -1; i * TW + off < W; i++) if ((i * 7 + r * 3 + 21) % 5 === 0) c.fillRect(i * TW + off, HUD_H + r * TH, TW, TH);
+  }
+  c.strokeStyle = 'rgba(110,140,150,.45)'; c.lineWidth = 3; c.beginPath();
+  for (let r = 0; r * TH < WALL_Y - HUD_H; r++) {
+    const y = HUD_H + r * TH, off = r % 2 ? TW / 2 : 0;
+    c.moveTo(0, y); c.lineTo(W, y);
+    for (let x = off; x <= W; x += TW) { c.moveTo(x, y); c.lineTo(x, Math.min(y + TH, WALL_Y)); }
+  }
+  c.stroke();
+  c.fillStyle = 'rgba(0,0,0,.16)'; c.fillRect(0, HUD_H, W, 10); // schaduw onder de bovenbalk
+  // een zoutvaatje en een lepel op de rand (rustig, in de hoeken)
+  c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#000';
+  c.font = `44px ${EMOJI}`; c.fillText('🧂', 54, WALL_Y - 34); c.fillText('🥄', W - 56, WALL_Y - 34);
+  // houten rand om de vloer
+  c.fillStyle = '#c8915a'; c.fillRect(0, WALL_Y - 8, W, 8);
+  c.lineWidth = 20; c.strokeStyle = '#5a3720'; c.strokeRect(10, WALL_Y + 10, W - 20, H - WALL_Y - 20);
+  c.lineWidth = 4; c.strokeStyle = '#a8703f'; c.strokeRect(22, WALL_Y + 22, W - 44, H - WALL_Y - 44);
+}
+
+// ----- tekstbordje met afgeronde hoeken (eigen status, "Je was even weg") -----
+function tag(c, text, x, y, size, fg, bg, border) {
+  c.font = `700 ${size}px ${FONT}`;
+  let tw = c.measureText(text).width;
+  if (tw > W - 100) { size = (size * (W - 100)) / tw; c.font = `700 ${size}px ${FONT}`; tw = W - 100; }
+  const pw = tw + size * 1.3, ph = size * 1.55;
+  c.fillStyle = bg; c.strokeStyle = border; c.lineWidth = 4;
+  c.beginPath(); c.roundRect(x - pw / 2, y - ph / 2, pw, ph, ph / 2); c.fill(); c.stroke();
+  c.fillStyle = fg; c.fillText(text, x, y + size * 0.04);
+}
+
+// ----- VEILIG-bordje: springt erin, balkje loopt leeg, knippert vlak voor het einde -----
+function drawSafe(c, x, y, safe, now) {
+  const age = SAFE_T - safe;
+  const pop = age < 0.15 ? 0.6 + (age / 0.15) * 0.5 : age < 0.3 ? 1.1 - ((age - 0.15) / 0.15) * 0.1 : 1;
+  c.save();
+  c.font = `700 28px ${FONT}`;
+  const t = '🛡️ VEILIG', w = c.measureText(t).width + 32;
+  c.translate(clamp(x, w / 2 + 14, W - w / 2 - 14), Math.max(HUD_H + 26, y)); c.scale(pop, pop);
+  c.globalAlpha = safe < 0.5 && Math.floor(now / 90) % 2 ? 0.45 : 1;
+  c.fillStyle = '#2b9348'; c.strokeStyle = '#fff'; c.lineWidth = 4;
+  c.beginPath(); c.roundRect(-w / 2, -23, w, 46, 23); c.fill(); c.stroke();
+  c.fillStyle = 'rgba(255,255,255,.8)'; c.fillRect(-w / 2 + 18, 13, (w - 36) * clamp(safe / SAFE_T, 0, 1), 4);
+  c.fillStyle = '#fff'; c.fillText(t, 0, -3);
+  c.restore();
+}
+
+// ----- kroket-bom tekenen: bruin met paneerkruimels, lont en vonk, wordt rood vlak voor BOEM -----
+const CRUMBS = [[-0.55, 0.1], [-0.25, 0.32], [0.15, -0.12], [0.45, 0.22], [0.62, -0.15], [-0.68, -0.22], [0.05, 0.36], [-0.1, -0.3]];
 function drawBomb(c, x, y, sz, ratio, now, slow) {
   const r = sz * 0.5, pulse = 1 + (ratio < 0.4 ? Math.sin(now / (30 + 150 * ratio)) * 0.06 : 0);
   c.save(); c.translate(x, y); c.scale(pulse, pulse);
-  c.fillStyle = `hsla(${50 * ratio},100%,55%,.35)`; c.beginPath(); c.arc(0, 0, r * 1.25, 0, Math.PI * 2); c.fill();
+  c.fillStyle = `hsla(${50 * ratio},100%,55%,.35)`; c.beginPath(); c.arc(0, 0, r * 1.25, 0, TAU); c.fill();
   c.rotate(-0.4);
   c.fillStyle = ratio < 0.3 ? '#c0392b' : '#b5651d'; c.strokeStyle = '#3d1f0a'; c.lineWidth = 5;
   c.beginPath(); c.roundRect(-r * 0.95, -r * 0.6, r * 1.9, r * 1.2, r * 0.6); c.fill(); c.stroke();
-  c.fillStyle = 'rgba(255,220,140,.5)'; c.beginPath(); c.roundRect(-r * 0.6, -r * 0.4, r * 0.9, r * 0.25, r * 0.12); c.fill();
+  c.fillStyle = 'rgba(70,30,5,.45)';
+  for (const [cx, cy] of CRUMBS) { c.beginPath(); c.arc(cx * r, cy * r, r * 0.07, 0, TAU); c.fill(); }
+  c.fillStyle = 'rgba(255,220,140,.55)'; c.beginPath(); c.roundRect(-r * 0.6, -r * 0.42, r * 0.9, r * 0.22, r * 0.11); c.fill();
   c.restore();
   const fx = x + r * 0.9, fy = y - r * 0.95;
   c.strokeStyle = '#555'; c.lineWidth = 4; c.beginPath(); c.moveTo(x + r * 0.4, y - r * 0.5); c.quadraticCurveTo(x + r * 0.9, y - r * 0.5, fx, fy); c.stroke();
   const fl = 8 + Math.sin(now / 40) * 4 + (slow ? 6 : 0);
-  c.fillStyle = '#ffd23f'; c.beginPath(); c.arc(fx, fy, fl, 0, Math.PI * 2); c.fill();
-  c.fillStyle = '#ff6b00'; c.beginPath(); c.arc(fx, fy, fl * 0.55, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#ffd23f'; c.beginPath(); c.arc(fx, fy, fl, 0, TAU); c.fill();
+  c.fillStyle = '#ff6b00'; c.beginPath(); c.arc(fx, fy, fl * 0.55, 0, TAU); c.fill();
 }
 
 // ----- host: ronde afsluiten met winnaar en scores (score = seconden overleefd) -----
@@ -723,11 +956,15 @@ function finish(S, party) {
   const names = winners.map((id) => nameOf(party, id)).join(' & ');
   let text = '';
   const most = Object.entries(S.p).sort((a, b) => b[1].bm - a[1].bm)[0];
+  const mx = Math.max(...Object.values(S.p).map((p) => p.held));
+  const grabby = Object.entries(S.p).filter(([, p]) => p.held === mx); // kreeg het vaakst een verse kroket
   if (most && most[1].bm >= 2 && !(winners.length === 1 && winners[0] === most[0])) text = `${nameOf(party, most[0])} ontplofte vaker dan een vuurwerkfabriek 🎆`;
+  else if (winners.length === 1 && grabby.length === 1 && grabby[0][0] === winners[0] && mx >= 2) text = `${names} heeft de nerveuze handjes van een sloop-aannemer 👑`;
   else if (S.order.length) text = `${nameOf(party, S.order[0])} ontplofte als eerste. Het ging lekker. 💥`;
   else text = 'Niemand ontplofte. Wat een kroketten-vrede. 🥟';
+  const win = [`${names} wint! 🥟👑`, `${names} is de koning van de kroketten! 👑`, `${names} wint! Niemand vertrouwde deze kroket 😏`];
   party.end({
-    title: winners.length ? `${names} wint! 🥟👑` : 'Niemand over! Gelijkspel 🥟💥',
+    title: winners.length ? pickBy(win, S.elapsed * 10) : 'Niemand over! Gelijkspel 🥟💥',
     text: `${text} ⏱️ Getal = seconden overleefd.`, winners, scores,
   });
 }

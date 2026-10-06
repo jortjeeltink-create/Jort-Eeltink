@@ -113,6 +113,7 @@ Knoppen 1–4 = spatie/J/Enter, K/Shift, L, I. De cijfers 1–4 werken ook. Een 
 | `party.ui` | overal | een `<div>` precies over de spelwereld, voor HTML-knoppen of tekst |
 | `party.canvas` | overal | het canvas-element |
 | `party.world` | overal | `{ w, h }` |
+| `party.screen` | overal | `{ w, h, scale, ox, oy }`: schermgrootte in pixels en de schaal van de wereld (handig om tekst op kleine schermen groter te maken) |
 | `party.juice.*` | overal (gebruik in `onEvent`) | geluid en effecten, zie hieronder |
 | `party.h(tag, attrs, ...kids)` | overal | snel een HTML-element maken |
 | `rand`, `randInt`, `pick`, `shuffle`, `clamp`, `lerp`, `dist`, `angle` | overal | hulpjes, ook te importeren uit `party.js` |

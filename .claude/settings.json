@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npm run playtest:*)",
+      "Bash(npm run dev:*)",
+      "Bash(node --check:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp games/:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

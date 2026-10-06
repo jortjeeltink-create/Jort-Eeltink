@@ -1,84 +1,88 @@
-# 🎉 Speeltest: Bombardeer! 🥟💣
+# 🎉 Speeltest 2: Bombardeer! 🥟💣
 
-**Kort:** een hete-aardappel-tikspel met een kroket die ontploft, een kip die er met de bom vandoor gaat, bananen en wraakzuchtige spoken. Het is chaotisch en flauw, en dat hoort zo. Twee dingen houden het nu nog onder de 8. Ten eerste wordt de bom vooral heen en weer getikt tussen twee mensen ("pingpong"), waardoor wie ontploft vaak toeval is. Ten tweede heeft wie er als eerste uit ligt na één gooi een minuut lang niks meer te doen.
+**Kort:** de drie grote klachten van test 1 zijn opgelost. Terugtikken komt niet meer voor, spoken hebben de hele ronde iets te doen en kiezen niet meer de winnaar, en de kip roept wie hij moet hebben. Dat laatste is meteen het grootste lachmoment van het spel. Wat overblijft: in de **finale** (en in een potje met 2 spelers) is het een **metronoom**. VEILIG loopt af, tik, VEILIG loopt af, tik. Verder staat de pauze tussen twee kroketten nog leeg, en valt "FINALE!" soms precies over de vulling-grap heen. Van een 7 naar een **8**.
 
 ## Wat we zagen
 
-**Echte speltest** (`--players 2 --bots 4 --seconds 60 --out test-speel`): ✅ geen fouten, 19,7 updates per seconde op de iPhone, state 1,5 KB. In 60 s was er nog geen ronde klaar. Dat klopt wel: een ronde met 6 spelers duurt ±88 s. Op de telefoon is alles goed te lezen: de grote "Bot Bea heeft hem!"-balk, de lontbalk met 💥, de gloeiende ring om de houder en de kroket die boven zijn hoofd opzwelt.
+**Echte speltest** (`--players 2 --bots 4 --seconds 60 --out test-speel`): ✅ geen fouten, 19,8 updates per seconde op de iPhone, state 1,7 KB. Na 60 s was er nog geen ronde klaar, en dat klopt: een ronde met 6 spelers duurt ±80 s. Een tweede run van 170 s (zelfde map) haalde **2 rondes**, weer zonder fouten (state max 1,9 KB). Daarnaast heb ik zelf screenshots gemaakt op een iPhone van VEILIG, de kip, TSSSS, de BOEM-reeks (na 0,6 s en 1,3 s), de spookknop en het eindscherm.
 
-**Extra metingen** (eigen simulatie van de echte `update` en `bot`, 150 rondes per aantal, plus losse screenshots van kip, TSSSS, BOEM, spook en eindscherm op een iPhone):
+**Extra metingen** (eigen simulatie van de echte `update` en `bot`, 100–150 rondes per aantal spelers):
 
-| Spelers | Rondeduur | Overgaves per lont | Eerste uit na | Tijd als spook (gem. / max) |
-|---|---|---|---|---|
-| 2 (3 levens) | ±86 s | 14 | n.v.t. | n.v.t. |
-| 4 | ±60 s | 13 | 17 s | 22 s / 46 s |
-| 6 | ±88 s | 11 | 17 s | 37 s / 76 s |
-| 8 | ±110 s | 9–10 | 17 s | 47 s / 98 s |
+| | Test 1 | Nu |
+|---|---|---|
+| Terugtik binnen 1,3 s | 51–73% van de overgaves | **0%** ✅ |
+| Ontvanger van spook-gooi ontploft | 100% (als de gooi in TSSSS viel) | **4–6%** ✅ |
+| Finale beslist door een spook-gooi | vaak | **1–7%** ✅ |
+| Kip | elke lont, altijd op 70% | **±50%** van de lonten, op een willekeurig moment ✅ |
+| Spook-banaan | bestond niet | ±6 per spook per minuut, 0,3–2,7 keer uitglijden per ronde ✅ |
+| Rondeduur 2 / 4 / 6 / 8 spelers | 86 / 60 / 88 / 110 s | **83 / 64 / 80 / 102 s** ✅ |
+| Eerste speler eruit | 17 s | 17–21 s |
+| BOEM na een wissel in de laatste 2,5 s (lont + TSSSS) | 90% | 90% |
 
-- ✅ Rondes duren 1–2 minuten en eindigen altijd met een winnaar. Sudden death was nooit nodig.
-- ✅ Winsten zijn eerlijk verdeeld over de bots, en elke lont wordt minstens één keer doorgegeven.
-- ⚠️ **Pingpong:** 51% (6 spelers) tot 73% (2 spelers) van alle overgaves is een **terugtik** binnen 1,3 s. De houder is sneller (410 tegen 380), dus na de 0,8 s vergrendeling tik je degene die het jou net gaf gewoon terug. Bij **90%** van de BOEMs wisselde de bom in de laatste 1,5 s nog van eigenaar. Wie ontploft, hangt dan vooral af van de timing.
-- ⚠️ **Spook als scheidsrechter:** als een spook gooit in de TSSSS-seconde (na 0,25 s), ontploft de ontvanger in **100%** van de gevallen. Hij is 0,8 s vergrendeld en heeft nog maar 0,75 s. In de finale kiest het laatste spook dat op de knop drukt dus de winnaar.
-- ℹ️ De kip komt bij **elke** lont van 8 s of langer, en altijd op 70%. Vijf keer per ronde "HIJ KOMT!" wordt voorspelbaar.
-- ℹ️ Wie zich in een hoek verstopt, wint iets vaker (24% in plaats van 17% bij 6 spelers). Daar heb je geen last van, want mensen zien dat wel.
+- ✅ Elke ronde eindigt met een winnaar. Sudden death was nooit nodig, en de winsten zijn eerlijk verdeeld over de bots.
+- ✅ **De kip is eerlijk en spannend:** hij pakt zijn doelwit in 41–47% van de keren en een pechvogel die in de weg staat in 12–26%. In 41–65% ontsnapt het doelwit, en dan gaat de kroket "TERUG NAAR JOU!" naar de oude houder.
+- ⚠️ **Metronoom in de finale:** met 2 spelers over duurt een beurt met de kroket gemiddeld **2,02 s**, precies de VEILIG-tijd. In 82–94% van de gevallen wordt er binnen 0,6 s na het einde van VEILIG getikt. De houder is sneller (410 tegen 380) en kan gewoon naast de veilige speler blijven hangen. Wie ontploft, hangt dus vooral af van hoeveel keer twee seconden er in de lont passen. In een potje met 2 spelers gaat de hele ronde zo.
+- ⚠️ **TSSSS is een val:** 48% van de BOEMs treft iemand die de kroket pas in de TSSSS-seconde kreeg. De vergrendeling van 0,8 s is bijna net zo lang als TSSSS (1 s), dus die speler kan niks meer doen.
+- ⚠️ **Dode pauze:** in de 3 s "Volgende kroket over…" heeft niemand iets te doen. De bots kruipen dan allemaal in het midden bij elkaar, en 70% van de nieuwe kroketten wordt na precies 0,8 s doorgegeven. Mensen kruipen minder dicht op elkaar, maar die 3 s zijn ook voor hen leeg.
+- ⚠️ **Teksten over elkaar:** "FINALE! Nog 2 🔥" en "Nog 5!" moeten op de andere helft van het veld komen dan de BOEM. Maar de code kijkt pas 1,3 s later waar het nieuwe spook is, en dat is dan al weggevlogen. In de echte speltest (`2-spel-speler2-iphone.png`) staat "FINALE! Nog 2" dwars over "Een eend! Zomaar. 🦆" heen.
 
 ## De vier vrienden
 
-**🙋 Sanne (gamet nooit, telefoon):** snapt het in 5 seconden. "Kroket = bom, ren iemand aan" kent iedereen van het schoolplein, en de knipperende rode tekst "JIJ HEBT HEM! Geef door!" helpt. Ze is wel de makkelijkste prooi en ligt er na ±17 s uit. Dan staat er onderin "Druk op de knop om de kroket te GOOIEN!", maar haar knop heet nog steeds **"Sprint"**. Ze twijfelt, gooit, en kijkt daarna een minuut lang naar "Veel plezier met toekijken." Dat is grappig geschreven, maar het voelt ook echt zo. 😐
+**🙋 Sanne (gamet nooit, telefoon):** snapt het weer in 5 seconden. De groene VEILIG-bubbel met bordje begrijpt ze zonder uitleg: "groen, die hoef ik niet". Ze ligt er na ±17 s uit, maar nu heet haar knop meteen **"👻 Gooi"** en zegt de balk "Knop / spatie = kroket GOOIEN! (1×)". Ze gooit, en Bot Bea roept "NEE!". Daarna wordt het "🍌 6… 🍌 Leg" en laat ze bananen vallen, met een scheetje. Haar eerste spook-banaan laat Daan onderuitgaan ("SPOOKBANAAN! 👻"), en háár telefoon speelt het muntjesgeluid. Van "Veel plezier met toekijken" naar bananenkoningin: dat is een groot verschil. Kleine minnen: "spatie" zegt niks op een telefoon, en wie de gooi bewaart voor het goede moment, kan intussen geen bananen leggen.
 
-**😤 Daan (fanatiek):** begint enthousiast. Een sprint uitlokken en dan zelf sprinten werkt echt, en de kip om iemand anders heen sturen voelt slim. Dan merkt hij dat Mo hem elke keer na precies 0,8 s terugtikt, en dat de laatste seconde een muntje opgooien is. In de finale tegen Lisa wordt hij in de TSSSS-seconde door een spook bekogeld: "DAAN NEE!" BOEM. Daan: "Dat is toch geen skill?!" Hij wil wel meteen revanche, dus helemaal kwijt zijn we hem niet.
+**😤 Daan (fanatiek):** is blij. Mo kan niet meer terugtikken, en Daan moet echt jagen op wie níet groen is. Daarbij gebruikt hij de groep als schild en jaagt hij iemand in een hoek. De spook-gooi in de laatste seconde is weg ("eindelijk"). De kip kan hij ontlopen als hij snel reageert, want de kip is trager dan jij. Dan de finale tegen Lisa: tik… twee tellen… tik… twee tellen… tik. "We tellen gewoon tot twee, dit is geen tikkertje meer!" Hij krijgt de kroket in de TSSSS-seconde en kan niks meer. BOEM. "Revanche. NU." Dat is goed nieuws: hij wil wel meteen nog een keer.
 
-**😈 Mo (de trol):** heeft het naar zijn zin. Terugtikken zodra het weer mag ("HIER, JIJ!" → "NIET MIJ!" → "HIER, JIJ!"), als spook pal naast de koploper hangen en op het laatste moment gooien, en als houder over een banaan op de groep afglijden. Kan Mo het spel breken? Nee. Weggaan met de bom in zijn handen wordt netjes opgevangen, en verstoppen helpt nauwelijks omdat een nieuwe kroket altijd valt op wie hem het minst had. Mo is hier dus de wraakengel, niet de saboteur.
+**😈 Mo (de trol):** heeft een nieuw speeltje. Als spook hangt hij boven de vluchtroute van de koploper en laat hij daar een banaan vallen. In een finale met 8 spelers liggen er gemiddeld **7 bananen** op het veld: een mijnenveld van spoken. Op het laatste moment de winnaar kiezen lukt niet meer ("Te laat om te gooien! 👻"), en dat is precies goed. Kan Mo het spel breken? Nee. Als hij weggaat met de kroket, krijgt een ander een verse kroket met een volle lont. Verstoppen helpt niet, want de houder komt hem halen. Wel kan hij als VEILIGE speler iemand tegen de houder aan duwen. Dat is gemeen, maar eerlijk trollen.
 
-**😂 Lisa (lacht om alles):** ligt dubbel. Haar top 5:
-1. De BOEM met vulling: "Sokken. Alweer. 🧦" (twee keer achter elkaar sokken was nog grappiger), "Brief van oma: 'Eet je groenten' 💌", "AUW MIJN KROKET".
-2. De kip die er met de bom vandoor gaat terwijl iedereen gillend wegrent.
-3. Uitglijden over een banaan en tollend precies tegen de houder aan.
-4. "SPOOK-GOOI! KOEN NEE!"
-5. Het eindscherm: "Bot Bo ontplofte als eerste. Het ging lekker. 💥"
+**😂 Lisa (lacht om alles):** haar nieuwe top 5:
+1. **"🐔 HIJ KOMT VOOR SANNE!"**, met een rood vizier, een stippellijn en een rode rand op Sannes scherm. De hele bank gilt "SANNE RENNEN!". En als de kip het opgeeft: "Pff, ik geef het op 🐔" en dan "TERUG NAAR JOU! 🙃" voor de oude houder.
+2. De BOEM-reeks, die je nu kunt lezen: "AUW MIJN KROKET", dan "Sokken. Alweer. 🧦", dan "👻 SPOOK!", dan "Nog 4!".
+3. Spoken die met een scheetgeluid een banaan leggen ("🍌 hihi").
+4. "SPOOK-GOOI!", met een boogje en dan "DAAN NEE!".
+5. In de TSSSS-seconde nog net doorgeven: "Oeps 🙃". Zielig voor de ander, dus extra grappig.
+
+Minpunt: soms valt "FINALE! Nog 2 🔥" precies over de eend heen, en dan kun je allebei niet lezen.
 
 ## Cijfers
 
-| | Cijfer | Waarom |
-|---|---|---|
-| Snap ik het meteen? | **8** | Hete aardappel kent iedereen, de bovenbalk is duidelijk. Min: de knop heet "Sprint" als je spook bent, en de vergrendeling zie je niet. |
-| Lachmomenten | **8** | Kroket-vulling, kip, banaan, spook-gooi, TSSSS en de eindteksten: ruim 3 echte lachmomenten. Bij de BOEM liggen drie teksten wel precies op elkaar. |
-| Spanning tot het eind | **7** | Lontbalk, sneller tikken, rode TSSSS-flits: dat spant echt. Maar door het pingpongen is wie ontploft vaak toeval, en dat haalt de "net op tijd!"-spanning weg. |
-| Eerlijkheid | **6** | Nieuwe bom naar wie hem het minst had en meer levens in kleine groepen zijn goed. Terugtikken en de spook-gooi in de laatste seconde maken de finale een loterij. |
-| Gevoel | **7** | Bewegen reageert meteen, de sprint met whoosh en de BOEM met schudden, flits en confetti voelen lekker. De "slowmotion" is geen echte slowmotion: alles beweegt gewoon door. |
-| Willen we nog een rondje? | **7** | Rondes zijn kort (1–2 min) en "Nog een ronde!" is groot. Wie er als eerste uit lag, heeft wel net een minuut zitten wachten. |
-| **Eindcijfer** | **7** | Een lekker chaotische partygame met goede grappen. Met de 3 punten hieronder wordt het makkelijk een 8. |
+| | Test 1 | Nu | Waarom |
+|---|---|---|---|
+| Snap ik het meteen? | 8 | **8** | De knop heet nu goed ("👻 Gooi", "🍌 Leg", "🍌 5") en VEILIG zie je meteen. VEILIG is wel een extra regel, en de uitleg heeft nu 6 regels. |
+| Lachmomenten | 8 | **9** | De kip met een naam is goud. Daarbij komen "TERUG NAAR JOU!", de scheet-bananen en een BOEM-reeks die je kunt lezen. Ruim 5 echte lachmomenten. |
+| Spanning tot het eind | 7 | **8** | Echte achtervolgingen zolang er 3 of meer spelers zijn, en de laatste seconde is van de spelers en niet van de spoken. De finale tikt wel op de maat. |
+| Eerlijkheid | 6 | **7** | Geen terugtikken, de kip eerlijk aangekondigd, spoken geen scheidsrechter meer. Wel is de finale vooral tellen, en 48% van de BOEMs treft iemand die in TSSSS geen kans meer had. |
+| Gevoel | 7 | **8** | De VEILIG-bubbel springt erin, de kroket valt op zijn nieuwe houder, de kip fladdert eerst met een ❗, en de bananen vallen voordat ze glad zijn. Mooi. Het is nog steeds geen echte slowmotion, en bij een kluitje spelers lopen de namen door elkaar. |
+| Willen we nog een rondje? | 7 | **8** | Rondes van 1–1,5 minuut, niemand zit stil (spoken leggen bananen), en het eindscherm toont seconden overleefd in plaats van rare getallen. |
+| **Eindcijfer** | 7 | **8** | Een echt leuke partygame. Met de finale als echte achtervolging wordt het een 9. |
 
 ## Wat al heel goed is
 
-- Het **kroket-thema** werkt. Een opzwellende kroket die rood wordt, met sokken of een brief van oma erin, is precies flauw genoeg.
-- **Leesbaar op een telefoon:** de vierkante wereld vult het scherm en de houder valt meteen op door de ring en de kroket.
-- **Eerlijk verdeeld:** een nieuwe kroket valt op wie hem het minst had, dus verstoppen loont niet.
-- **Kleine groepen krijgen meer levens**, dus een duel met 2 spelers is niet na 15 s klaar.
-- **Rondelengte** zit bij elk aantal spelers netjes tussen 1 en 2 minuten.
+- **VEILIG werkt:** 0% terugtikken, en je ziet in één oogopslag wie je niet kunt tikken.
+- **De kip is de ster:** aangekondigd, te ontlopen, en met twee grappige afloop-momenten ("GEPAKT! 🎯" of "TERUG NAAR JOU! 🙃").
+- **Spoken spelen mee** met één gooi en daarna elke 8 s een banaan, en ze kiezen niet meer de winnaar.
+- **Leesbaar op een telefoon:** de bovenbalk zegt altijd wat er gebeurt ("De kip zoekt Bot Bram!", "JIJ HEBT HEM!"), en je eigen status staat in de tegelrand.
+- **Rondelengte** blijft bij elk aantal spelers tussen 1 en 1¾ minuut.
 
 ## De 3 verbeterpunten
 
-### 1. Niet terugtikken: wie de kroket net doorgaf, is 2 seconden veilig 🛡️ (bouwer, regel)
-In `pass()` krijgt de vorige houder `lock = 2.0` in plaats van 0,8. De nieuwe houder houdt 0,8 s en mag daarna wel meteen iemand **anders** tikken. Teken de veilige speler half doorzichtig met een klein "😮‍💨 VEILIG"-bordje (of hergebruik het knipperen van het schild), zodat iedereen ziet wie je niet kunt tikken.
-*Gemeten:* terugtikken daalt van 51–73% naar 0–5%. Er blijven ±20 overgaves per minuut (één per 3 s), dus het blijft druk. Een BOEM na een wissel in de laatste 1,5 s daalt van 90% naar ±70%. Het wordt een echte achtervolging, waarin Daan met sprinten en uitwijken kan laten zien wat hij kan.
+### 1. Hete handjes: wie de kroket krijgt, jongleert hem eerst even 🔥🤲 (bouwer regel, kunstenaar gevoel)
+Wie de kroket door een **gewone tik** krijgt, loopt de eerste **0,5 s op 15% snelheid**. Dat valt binnen de vergrendeling van 0,8 s die er al is. Niet na een spook-gooi of de kip, anders worden spoken weer scheidsrechter. In `update`: `if (id === S.holder && p.hot > 0) sp *= 0.15`, met `p.hot = 0.5` in `pass()` bij een tik. De kunstenaar laat de kroket boven de houder van hand naar hand stuiteren, met "AU! HEET! HEET!" en een paar 💨-wolkjes.
+*Gemeten:* in een duel daalt het aandeel tikken binnen 2,6 s van **82% naar 48%** (2 spelers) en van 86% naar 72% (finale bij 6 spelers). Een redding in TSSSS daalt van 48% naar 33–36%. Er blijven 16–19 overgaves per minuut, en de rondeduur verandert niet. Wie net doorgaf, krijgt zo een echte voorsprong, en dan wordt de finale een sprint-duel waarin Daan kan laten zien wat hij kan, in plaats van tellen tot twee.
 
-### 2. Spoken blijven meedoen: elke 8 s een spook-banaan, en geen gooi meer in de laatste seconde 👻🍌 (bouwer, regel)
-- Een spook kan met de knop **elke 8 s een 🍌 laten vallen** op de plek waar hij zweeft (max. 1 spook-banaan per spook op het veld). Uitgeglijden werkt zoals nu. De eenmalige GOOI blijft, bijvoorbeeld op de tweede knop of als eerste druk.
-- De spook-gooi werkt **niet meer als de lont onder 1,5 s is of tijdens TSSSS**. De hint toont dan "Te laat! 👻".
+### 2. De volgende kroket kiest al in de pauze zijn slachtoffer 🎯🥟 (bouwer, regel)
+Kies bij de BOEM al wie de volgende kroket krijgt (zelfde regel: wie hem het minst had) en zet dat in `S.next`. In de pauze zegt de bovenbalk "🎯 Volgende kroket: SANNE! (3…)" en hangt er een stuiterende 🎯 boven Sanne. Bots vluchten in de pauze van `S.next` weg. Zo wordt de dode pauze een moment waarop iedereen gillend van Sanne wegrent voordat ze de kroket heeft ("WAAROM RENNEN JULLIE?!").
+*Gemeten:* een nieuwe kroket die na precies 0,8 s al weer weg is, daalt van **70% naar 2–9%**. Bij de landing staat de dichtstbijzijnde speler ±500 ver weg in plaats van 64. De rondeduur blijft gelijk (80 s bij 6 spelers).
 
-Zo heeft Sanne de hele ronde iets te doen (nu gemiddeld 37–47 s als spook, tot 98 s bij 8 spelers), kan Mo blijven trollen, en kiest het laatste spook niet meer de winnaar (nu 100%). Bonus: de knop heet voor een spook nog "Sprint". Zet het label in `render` op "👻 Gooi" of "🍌 Leg", bijvoorbeeld via de `.pc-btn` in de DOM, of geef de engine een kleine `setButtons`.
-
-### 3. De kip roept wie hij moet hebben, en de BOEM-teksten komen na elkaar 🐔🎯 (kunstenaar, gevoel)
-- Bij het `kip`-event wordt de tekst "🐔 HIJ KOMT VOOR **SANNE**!" (met `d.target`), en zolang `S.chicken` rent staat er een stuiterende 🎯 boven het doelwit. Op het toestel van het doelwit komt daarbij `vibrate(150)` en een rode schermrand. Dan weet de hele bank wie er moet gillen.
-- Bij `boem` liggen "AUW MIJN KROKET", de vulling-grap en "👻 SPOOK!" nu precies op elkaar. Laat ze **na elkaar** verschijnen (0 s, +0,4 s, +0,8 s) en op verschillende hoogtes, zodat je "Sokken. Alweer." ook echt kunt lezen. Dat is de beste grap van het spel.
+### 3. De finale een eigen moment geven, zonder teksten over elkaar 🔥🆚 (kunstenaar, gevoel)
+- **Fix:** in het `uit`-event wordt `seen[d.id]` pas 1,3 s later gelezen, en dan is het spook al weggevlogen. Bewaar de BOEM-plek meteen bij het event, zodat "Nog N!" en "FINALE!" altijd op de andere helft komen dan "AUW MIJN KROKET" en de vulling-grap.
+- **Finale-moment:** zolang er nog 2 over zijn, staat in de bovenbalk "🔥 DAAN 🆚 LISA 🔥", met de naam van de houder knipperend in rood. Spoken worden in de finale nog wat doorzichtiger (0,3 in plaats van 0,45). Zo blijven de twee finalisten tussen 6 spoken en 7 bananen goed te zien. Bij de winnende BOEM klinkt een extra `go` en komt er dubbele confetti.
 
 ## Kleinere ideeën (voor later)
 
-- **Kip minder voorspelbaar** (bouwer): 50% kans per lont en op een willekeurig moment tussen 70% en 30%, in plaats van elke lont precies op 70%.
-- **Echte slowmotion in TSSSS** (bouwer): iedereen beweegt die seconde op 40% snelheid. Dan zie je de houder in slowmotion naar iemand duiken. Dat is beter om naar te kijken en minder toeval.
-- **Eindscherm-score** (bouwer): "1010 / 83 / 67" zegt niemand iets. Toon "overleefd: 83 s" of "👑".
+- **Knoptekst op een telefoon** (bouwer): "Knop / spatie = …" alleen op een laptop. Op een telefoon is "Druk op 👻 Gooi!" genoeg.
+- **Bananen sparen** (bouwer): laat een spook ook een banaan leggen als de gooi nog niet gebruikt is, bijvoorbeeld met kort drukken voor een banaan en lang drukken voor de gooi. Dan hoeft Sanne niet te kiezen tussen wachten en meedoen.
+- **Echte slowmotion in TSSSS** (bouwer): iedereen beweegt die seconde op 40% snelheid. Dat is mooier om naar te kijken en het maakt de TSSSS-val minder hard.
 
 ## Zouden we dit op een feestje spelen?
 
-**Ja.** Na twee rondes is iedereen hees van "NIET MIJ!" en "KOEN NEE!", al moet iemand Daan na de derde pingpong-finale wel even een kroket geven om te kalmeren. 🥟
+**Ja, zeker.** Na drie rondes roept de hele bank "SANNE RENNEN!" zodra er een kip verschijnt, en Mo heeft zijn roeping gevonden als bananenspook. Alleen Daan zit in de finale nog hardop "één, twee… tik" te tellen. 🥟🐔

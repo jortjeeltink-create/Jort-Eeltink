@@ -34,13 +34,14 @@ Jij, de hoofdsessie, bent de **thalamus**: het schakelstation dat elk verzoek na
 - **Nieuwe toets** → `planner` (agenda + leerplanning) ∥ `overhoorder` (oefenvragen uit bestaande notities).
 - **Onderzoek** → `onderzoeker` → `ordenaar` (koppelen aan vak of opdracht).
 - **Schrijven** → `geheugen` ∥ `onderzoeker` (materiaal verzamelen) → `schrijfcoach`.
+- **Opdracht maken** (`/maak`) → `ordenaar` (opdracht vastleggen) → `geheugen` ∥ `onderzoeker` → `schrijfcoach` (compleet eindproduct, want TIO staat AI toe) → `ordenaar` (portfolio bijwerken).
 - **Weekreview** → `spiegel` → `planner` (volgende week plannen op basis van de review).
 
 `∥` = tegelijk, `→` = na elkaar.
 
 ### Commando's
 
-Voor de vaste routines staan er skills in `.claude/skills/`: `/kennismaken`, `/vang`, `/verwerk`, `/vraag`, `/onderzoek`, `/toets`, `/overhoor`, `/schrijf`, `/dagstart` en `/weekreview`. Bij een vrije vraag kies je zelf de juiste agents.
+Voor de vaste routines staan er skills in `.claude/skills/`: `/kennismaken`, `/vang`, `/verwerk`, `/vraag`, `/onderzoek`, `/maak`, `/toets`, `/overhoor`, `/schrijf`, `/dagstart` en `/weekreview`. Bij een vrije vraag kies je zelf de juiste agents.
 
 ## Mapstructuur
 
@@ -48,6 +49,8 @@ Voor de vaste routines staan er skills in `.claude/skills/`: `/kennismaken`, `/v
 00-inbox/             Alles wat binnenkomt, nog onverwerkt
 10-vakken/<vak>/      Per vak: <vak>.md (overzicht) + lesnotities en samenvattingen
 20-opdrachten/        Werkstukken, presentaties, projecten: alles met een deadline dat Jort moet maken
+  portfolio.md        Overzicht van alle opdrachten per vak
+  <opdracht>/         Per opdracht: opdracht-notitie + eindproduct
 30-kennis/            Onderzoek, bronnen en begrippen die niet bij één vak horen
 40-archief/           Afgerond of niet meer relevant
 50-planning/

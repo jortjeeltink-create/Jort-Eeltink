@@ -1,26 +1,24 @@
 ---
-type: profiel
-tags: [profiel]
+type: over-mij
+tags: [over-mij]
 aangemaakt: 2026-10-06
 bijgewerkt: 2026-10-06
 ---
 # Over mij
 
-> [!tip] Nog leeg?
-> Typ `/kennismaken` in Claude Code. Het brein stelt je een paar vragen en vult deze pagina voor je in.
-
 ## School
-- **School:**
-- **Niveau en leerjaar:** <!-- bijv. havo 4, vwo 5, mbo 2, hbo jaar 1 -->
-- **Profiel of opleiding:**
-- **Vakken:**
-- **Rooster-app / ELO:** <!-- bijv. Magister, SOMtoday, Zermelo, Itslearning -->
-- **AI-regels van school:** <!-- wat mag wel en niet met AI bij opdrachten en toetsen? -->
+- **School:** TIO
+- **Niveau en leerjaar:** hbo, jaar 1
+- **Profiel of opleiding:** Business Management
+- **Vakken:** [[communication]], [[engels]], [[data-driven-decision-making]], [[managing-the-business]], [[mapping-the-business]], [[marketing]]
+- **Rooster-app / ELO:** My TIO
+- **AI-regels van school:** "Je mag het met AI maken." AI mag dus gebruikt worden om opdrachten te maken. Of AI-gebruik vermeld moet worden, is nog niet bekend. #vraag
 
 ## Hoe ik leer
+- **Werkwijze met het brein:** "Ik heb het liefst dat jij de opdrachten maakt en overzichtelijk bewaard in portfolio." Jort stuurt een opdracht in het brein en het brein maakt hem (zie `/maak`). Alles wordt bewaard in het [[portfolio]].
 - **Beste momenten om te leren:**
 - **Hoeveel tijd per dag voor school (naast lessen):**
-- **Wat werkt voor mij:** <!-- bijv. samenvatten, flashcards, uitleggen aan iemand, schema's -->
+- **Wat werkt voor mij:**
 - **Lastigste vak(ken):**
 
 ## Doelen dit schooljaar
@@ -28,5 +26,5 @@ bijgewerkt: 2026-10-06
 
 ## Hoe het brein met mij praat
 - **Taal:** Nederlands
-- **Toon:** <!-- bijv. kort en direct, of uitgebreid met voorbeelden -->
-- **Emoji:** <!-- ja / nee -->
+- **Toon:** kort en direct
+- **Emoji:**

@@ -90,13 +90,14 @@ function fleeDir(me, threat) {
 // hot = gewone tik: dan heeft de nieuwe houder hete handjes (niet na een spook-gooi of de kip).
 function pass(S, to, party, hot) {
   const from = S.holder;
-  if (from && S.p[from] && from !== to) S.p[from].safe = SAFE_T;
+  const fp = from && S.p[from] && from !== to ? S.p[from] : null;
+  if (fp) fp.safe = SAFE_T;
   const slow = S.phase === 'slow';
   S.holder = to;
   S.p[to].lock = slow ? 0 : LOCK;
   S.p[to].safe = 0;
   S.p[to].hot = hot && !slow ? HOT_T : 0;
-  party.emit('pas', { x: S.p[to].x, y: S.p[to].y, from, to, hot: S.p[to].hot > 0 ? 1 : 0 });
+  party.emit('pas', { x: S.p[to].x, y: S.p[to].y, from, to, hot: S.p[to].hot > 0 ? 1 : 0, fx: fp ? Math.round(fp.x) : null, fy: fp ? Math.round(fp.y) : null });
 }
 
 // Wie krijgt de volgende kroket? Wie hem het minst vaak had (gelijk: loten). Al bij de BOEM gekozen,
@@ -563,7 +564,15 @@ startGame({
       pasQ.push(setTimeout(() => {
         j.sfx('pop', { pitch: 0.9 + Math.random() * 0.5 });
         j.particles(d.x, d.y - 20, { count: 10, colors: ['#ffd166', '#fff', '#ff9f1c'], speed: 300, size: 9 });
-        say(j, d.x, d.y - 100, pickBy(['HIER, JIJ!', 'NIET MIJ!', 'Oeps 🙃', 'PLOF!'], d.x * 7 + d.y), { color: '#fff', size: 38 });
+        if (d.hot) { // hete handjes: de nieuwe houder jongleert even met de kroket
+          j.sfx('hit', { vol: 0.35, pitch: 1.7 });
+          j.particles(d.x, d.y - 70, { count: 4, emoji: '💨', speed: 160, size: 9, life: 0.6, gravity: -80 });
+          // niet over het VEILIG-bordje van wie hem gaf: boven de kroket; staat die erboven, dan onder de naam of opzij
+          const above = d.fy != null && d.fy < d.y - 30, under = above && d.y < H - 220;
+          let tx = d.x;
+          if (above && !under) tx += (Math.abs(d.x - d.fx) > 20 ? Math.sign(d.x - d.fx) : d.x < CX ? 1 : -1) * 160;
+          say(j, tx, under ? d.y + 150 : d.y - 155, pickBy(['AU! HEET!', 'AU! HEET! HEET!', 'AU! HEET! 🔥'], d.x * 7 + d.y), { color: '#ff7b29', size: 40, rise: under ? 25 : 90 });
+        } else say(j, d.x, d.y - 100, pickBy(['HIER, JIJ!', 'NIET MIJ!', 'Oeps 🙃', 'PLOF!'], d.x * 7 + d.y), { color: '#fff', size: 38 });
         if (d.to === me) { j.shake(5, 0.2); j.flash('rgba(255,140,40,.25)', 0.2); }
         if (d.from === me) j.sfx('coin', { vol: 0.5, pitch: 1.2 });
       }, 0));
@@ -586,12 +595,12 @@ startGame({
       const f = FILL[d.filling] || FILL.taart, by = bandY(d.y);
       j.sfx('boom'); j.sfx('splat', { vol: 0.6 }); j.shake(d.out ? 30 : 20, 0.7); j.flash('#fff', 0.3); j.confetti();
       j.particles(d.x, d.y, { count: 18, colors: ['#ff9f1c', '#ffd166', '#ff4d6d', '#fff'], speed: 700, size: 16, life: 0.5 });
-      j.particles(d.x, d.y, { count: 8, emoji: '🥟', speed: 500, size: 11, gravity: 600, life: 0.9 });
+      j.particles(d.x, d.y, { count: 4, emoji: '🥟', speed: 500, size: 11, gravity: 600, life: 0.9 });
       if (d.id === me) j.vibrate(300);
       say(j, d.x, by - 85, d.out ? 'AUW MIJN KROKET' : 'BOEM!', { color: '#ff9f1c', size: 62, life: 1.0, rise: 50 });
       later(0.4, () => {
         j.sfx(f.s, { vol: 0.7 });
-        j.particles(d.x, d.y, { count: 12, emoji: f.e, speed: 650, size: 18, gravity: 700, life: 1.3, angle: -Math.PI / 2, spread: Math.PI * 1.2 });
+        j.particles(d.x, d.y, { count: 6, emoji: f.e, speed: 650, size: 18, gravity: 700, life: 1.3, angle: -Math.PI / 2, spread: Math.PI * 1.2 });
         say(j, d.x, by + 5, f.t(nm(d.id)), { color: '#fff', size: 44, life: 2.4, rise: 40 });
       });
       if (!d.out) later(0.85, () => {
@@ -601,20 +610,23 @@ startGame({
     }
     if (name === 'spook') later(0.85, () => {
       j.sfx('lose', { vol: 0.8 });
-      j.particles(d.x, d.y, { count: 10, emoji: '👻', speed: 200, size: 10, gravity: -150, life: 1 });
+      j.particles(d.x, d.y, { count: 5, emoji: '👻', speed: 200, size: 10, gravity: -150, life: 1 });
       say(j, d.x, bandY(d.y) + 85, '👻 SPOOK!', { color: '#cdb4ff', size: 46, life: 1.4, rise: 30 });
     });
-    if (name === 'uit' && d.left >= 2) later(1.3, () => {
-      const s = seen[d.id], y = s && s.y > CY ? Y0 + 150 : Y1 - 220; // op de andere helft dan de BOEM
-      if (d.left === 2) { j.sfx('go'); say(j, CX, y, 'FINALE! Nog 2 🔥', { color: '#ffd166', size: 62, life: 1.8, rise: 40 }); }
-      else { j.sfx('pop', { pitch: 0.7 }); say(j, CX, y, `Nog ${d.left}!`, { color: '#fff', size: 62, life: 1.6, rise: 40 }); }
-    });
+    if (name === 'uit' && d.left >= 2) {
+      const by = d.y != null ? d.y : seen[d.id]?.y; // de BOEM-plek, nu meteen (het spook vliegt straks weg)
+      const y = by > CY ? Y0 + 150 : Y1 - 220;          // op de andere helft dan de BOEM-teksten
+      later(1.3, () => {
+        if (d.left === 2) { j.sfx('go'); say(j, CX, y, 'FINALE! Nog 2 🔥', { color: '#ffd166', size: 62, life: 1.8, rise: 40 }); }
+        else { j.sfx('pop', { pitch: 0.7 }); say(j, CX, y, `Nog ${d.left}!`, { color: '#fff', size: 62, life: 1.6, rise: 40 }); }
+      });
+    }
 
     // 🐔 de kip: iedereen ziet voor wie hij komt; het doelwit trilt en ziet rood
     if (name === 'kip') {
       const mine = d.target === me;
       j.sfx('quack'); later(0.16, () => j.sfx('quack', { pitch: 1.25 }));
-      j.particles(d.x, d.y, { count: 12, emoji: '🪶', speed: 320, size: 10, life: 0.9, gravity: 200 });
+      j.particles(d.x, d.y, { count: 6, emoji: '🪶', speed: 320, size: 10, life: 0.9, gravity: 200 });
       if (!d.again) say(j, CX, CY - 150, mine ? '🐔 HIJ KOMT VOOR JOU!' : `🐔 HIJ KOMT VOOR ${nm(d.target).toUpperCase()}!`, { color: mine ? '#ff4d6d' : '#ffd166', size: 62, life: 1.8, rise: 40 });
       else say(j, CX, CY - 150, mine ? '🐔 NU WIL HIJ JOU!' : `🐔 Nieuw doelwit: ${nm(d.target)}!`, { color: mine ? '#ff4d6d' : '#ffd166', size: 48, life: 1.4, rise: 40 });
       if (mine) { j.vibrate([150, 60, 150]); j.flash('rgba(255,30,30,.45)', 0.45); j.shake(8, 0.4); }
@@ -692,7 +704,7 @@ startGame({
     lastS = S;
     const now = performance.now();
     const me = party.me;
-    drawKitchen(c);
+    drawKitchenCached(c, party);
     c.textAlign = 'center'; c.textBaseline = 'middle';
 
     // knop: "Sprint" voor levenden, "👻 Gooi" of "🍌 Leg" voor spoken
@@ -746,7 +758,9 @@ startGame({
       c.beginPath(); c.moveTo(kp.x, kp.y); c.lineTo(t.x, t.y); c.stroke(); c.setLineDash([]); c.lineDashOffset = 0;
     }
 
-    // 1. lichamen: eerst spoken, dan levenden
+    // 1. lichamen: eerst spoken, dan levenden (in de finale zijn spoken extra doorzichtig)
+    const finale = living(S).length === 2 && S.phase !== 'fin';
+    const ghostA = finale ? 0.3 : 0.45;
     const entries = Object.entries(S.p).sort((a, b) => (b[1].ghost ? 1 : 0) - (a[1].ghost ? 1 : 0));
     for (const [id, p] of entries) {
       const pos = party.smooth(id, p.x, p.y);
@@ -756,7 +770,7 @@ startGame({
       if (isHolder && S.phase === 'slow') { px += Math.sin(now / 15) * 5; py += Math.cos(now / 17) * 5; }
       seen[id] = { x: px, y: py };
       const ph = (id.charCodeAt(0) + id.length * 7) % 10;
-      c.globalAlpha = p.ghost ? 0.45 : (p.shield > 0 && Math.floor(now / 100) % 2 ? 0.45 : 1);
+      c.globalAlpha = p.ghost ? ghostA : (p.shield > 0 && Math.floor(now / 100) % 2 ? 0.45 : 1);
       c.fillStyle = 'rgba(0,0,0,.18)';
       c.beginPath(); c.ellipse(px, py + R * 0.8, R * (p.ghost ? 0.6 : 0.9), R * (p.ghost ? 0.22 : 0.35), 0, 0, TAU); c.fill();
       // VEILIG: groene bubbel (knippert vlak voor het einde)
@@ -822,7 +836,7 @@ startGame({
       const hw = c.measureText(label).width / 2 + 6;
       const lx = clamp(px, hw + 16, W - hw - 16);
       const ly = low ? stack(ns + 2) : py + R + ns * 0.72;
-      c.globalAlpha = p.ghost ? 0.75 : 1;
+      c.globalAlpha = p.ghost ? (finale ? 0.4 : 0.75) : 1;
       c.lineWidth = ns * 0.22; c.lineJoin = 'round'; c.strokeStyle = 'rgba(0,0,0,.72)';
       c.fillStyle = p.ghost ? '#d9ccff' : mine ? '#ffe066' : '#fff';
       c.strokeText(label, lx, ly); c.fillText(label, lx, ly);
@@ -830,7 +844,9 @@ startGame({
       if (isHolder) { // de kroket: zwelt op en wordt rood; valt even op zijn plek bij een nieuwe houder
         const sz = 56 * (1 + 0.6 * (1 - ratio)) * (S.phase === 'slow' ? 1 + Math.sin(now / 40) * 0.1 : 1);
         const drop = p.lock > 0 ? (p.lock / LOCK) ** 2 * 70 : 0;
-        bomb = { x: clamp(px, sz * 0.65, W - sz * 0.65), y: stack(sz * 0.85) + sz * 0.08 - drop, sz }; // ruimte voor lont en vonkje
+        // hete handjes: de kroket stuitert van de ene hand naar de andere
+        const jx = p.hot > 0 ? Math.sin(now / 70) * R * 0.75 : 0, jy = p.hot > 0 ? Math.abs(Math.cos(now / 70)) * 26 : 0;
+        bomb = { x: clamp(px + jx, sz * 0.65, W - sz * 0.65), y: stack(sz * 0.85) + sz * 0.08 - drop - jy, sz }; // ruimte voor lont en vonkje
       }
       if (hearts) {
         c.font = `30px ${EMOJI}`; c.fillStyle = '#000';
@@ -842,7 +858,7 @@ startGame({
         c.font = `700 36px ${FONT}`; c.lineWidth = 8; c.strokeStyle = 'rgba(0,0,0,.75)'; c.fillStyle = '#ffe066';
         c.strokeText('▼ JIJ', clamp(px, 70, W - 70), y); c.fillText('▼ JIJ', clamp(px, 70, W - 70), y);
       }
-      if (id === hunt) {
+      if (id === hunt || (S.phase === 'pause' && id === S.next)) {
         const y = Math.max(HUD_H + 32, stack(56) - Math.abs(Math.sin(now / 150)) * 12);
         c.font = `56px ${EMOJI}`; c.fillStyle = '#000'; c.fillText('🎯', clamp(px, 40, W - 40), y);
       }
@@ -866,20 +882,24 @@ startGame({
     c.fillStyle = 'rgba(40,24,12,.95)'; c.fillRect(0, 0, W, HUD_H);
     c.fillStyle = '#ffd166'; c.fillRect(0, HUD_H - 4, W, 4);
     c.textAlign = 'center'; c.textBaseline = 'middle';
-    const kipMe = hunt === me;
-    let line = '';
+    const kipMe = hunt === me, blink = Math.floor(now / 200) % 2;
+    const nx = S.phase === 'pause' && S.next && S.p[S.next] && !S.p[S.next].ghost ? S.next : null;
+    let line = '', parts = null;
     if (S.phase === 'intro') line = 'Kroket in aantocht… 🥟';
-    else if (S.phase === 'pause') line = `Volgende kroket over ${Math.max(1, Math.ceil(S.pause))}… 🥟`;
+    else if (nx) { // pauze: iedereen ziet al voor wie de volgende kroket is (wegwezen!)
+      const n = `! (${Math.max(1, Math.ceil(S.pause))}…)`;
+      parts = [['🎯 Volgende kroket: ', '#fff'], nx === me ? ['JIJ', blink ? '#ff6b6b' : '#ffe066'] : [nameOf(party, nx).toUpperCase(), '#ffd166'], [n, '#fff']];
+    } else if (S.phase === 'pause') line = `Volgende kroket over ${Math.max(1, Math.ceil(S.pause))}… 🥟`;
     else if (S.phase === 'fin') line = 'En dat was het! 🥟';
     else if (ck) line = kipMe ? '🐔 DE KIP WIL JOU! Rennen!' : `🐔 De kip zoekt ${nameOf(party, hunt)}!`;
-    else if (S.holder === me) line = 'JIJ HEBT HEM! Geef door! 🥟';
+    else if (finale) { // finale: twee namen tegen elkaar, wie de kroket heeft knippert rood
+      const [a, b] = living(S).map(([id]) => id);
+      const who = (id) => [(id === S.holder ? '🥟 ' : '') + nameOf(party, id).toUpperCase(), id === S.holder && blink ? '#ff6b6b' : id === me ? '#ffe066' : '#fff'];
+      parts = [['🔥 ', '#fff'], who(a), [' 🆚 ', '#fff'], who(b), [' 🔥', '#fff']];
+    } else if (S.holder === me) line = 'JIJ HEBT HEM! Geef door! 🥟';
     else if (S.holder) line = `🥟 ${nameOf(party, S.holder)} heeft hem!`;
-    let fs = 44;
-    c.font = `700 ${fs}px ${FONT}`;
-    const lw = c.measureText(line).width, maxW = W - 440;
-    if (lw > maxW) { fs = Math.floor((fs * maxW) / lw); c.font = `700 ${fs}px ${FONT}`; }
-    c.fillStyle = (S.holder === me || kipMe) && Math.floor(now / 200) % 2 ? '#ff6b6b' : '#fff';
-    c.fillText(line, CX, 36);
+    if (!parts) parts = [[line, (S.holder === me || kipMe) && blink ? '#ff6b6b' : '#fff']];
+    drawParts(c, parts, CX, 36, 44, W - 440);
     c.textAlign = 'left'; c.font = `700 34px ${FONT}`; c.fillStyle = '#ffd166';
     c.fillText(`👥 ${living(S).length}`, 22, 36);
     if (S.sd) { c.font = `700 28px ${FONT}`; c.fillStyle = '#ff4d6d'; c.textAlign = 'right'; c.fillText('SUDDEN DEATH', W - 20, 36); }
@@ -934,6 +954,38 @@ function drawKitchen(c) {
   c.fillStyle = '#c8915a'; c.fillRect(0, WALL_Y - 8, W, 8);
   c.lineWidth = 20; c.strokeStyle = '#5a3720'; c.strokeRect(10, WALL_Y + 10, W - 20, H - WALL_Y - 20);
   c.lineWidth = 4; c.strokeStyle = '#a8703f'; c.strokeRect(22, WALL_Y + 22, W - 44, H - WALL_Y - 44);
+}
+
+// ----- tekst in stukjes met eigen kleuren, gecentreerd; te breed wordt kleiner -----
+function drawParts(c, parts, cx, y, fs, maxW) {
+  const width = () => parts.reduce((a, [t]) => a + c.measureText(t).width, 0);
+  c.font = `700 ${fs}px ${FONT}`;
+  let tw = width();
+  if (tw > maxW) { fs = Math.floor((fs * maxW) / tw); c.font = `700 ${fs}px ${FONT}`; tw = width(); }
+  let x = cx - tw / 2;
+  c.textAlign = 'left';
+  for (const [t, col] of parts) { c.fillStyle = col; c.fillText(t, x, y); x += c.measureText(t).width; }
+  c.textAlign = 'center';
+}
+
+// ----- keuken één keer tekenen op een eigen canvas (scheelt veel werk per beeld op trage telefoons) -----
+let kitchen = null, kitchenKey = '';
+function drawKitchenCached(c, party) {
+  const dpr = Math.min((typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1, 2);
+  const k = Math.min(2, (party.screen?.scale || 1) * dpr); // beeldpunten per wereld-eenheid
+  const key = k.toFixed(3);
+  if (key !== kitchenKey) { // nieuw (of het scherm is gedraaid of groter/kleiner gemaakt): opnieuw tekenen
+    if (kitchen) kitchen.width = kitchen.height = 0; // oude meteen vrijgeven (oude iPhones hebben weinig canvas-geheugen)
+    kitchenKey = key; kitchen = null;
+    try {
+      const cv = document.createElement('canvas');
+      cv.width = Math.max(1, Math.round(W * k)); cv.height = Math.max(1, Math.round(H * k));
+      const kc = cv.getContext('2d');
+      if (kc) { kc.scale(cv.width / W, cv.height / H); drawKitchen(kc); kitchen = cv; }
+    } catch (e) { kitchen = null; }
+  }
+  if (kitchen) c.drawImage(kitchen, 0, 0, W, H);
+  else drawKitchen(c);
 }
 
 // ----- tekstbordje met afgeronde hoeken (eigen status, "Je was even weg") -----
@@ -998,9 +1050,10 @@ function finish(S, party) {
   else if (winners.length === 1 && grabby.length === 1 && grabby[0][0] === winners[0] && mx >= 2) text = `${names} heeft de nerveuze handjes van een sloop-aannemer 👑`;
   else if (S.order.length) text = `${nameOf(party, S.order[0])} ontplofte als eerste. Het ging lekker. 💥`;
   else text = 'Niemand ontplofte. Wat een kroketten-vrede. 🥟';
-  const win = [`${names} wint! 🥟👑`, `${names} is de koning van de kroketten! 👑`, `${names} wint! Niemand vertrouwde deze kroket 😏`];
+  // titel kort houden (past ook op een liggende telefoon), de grap staat in de tekst eronder
+  const joke = winners.length ? pickBy(['', 'Koning van de kroketten! 👑', 'Niemand vertrouwde deze kroket 😏'], S.elapsed * 10) : '';
   party.end({
-    title: winners.length ? pickBy(win, S.elapsed * 10) : 'Niemand over! Gelijkspel 🥟💥',
-    text: `${text} ⏱️ Getal = seconden overleefd.`, winners, scores,
+    title: winners.length ? `${names} wint! 🥟👑` : 'Niemand over! Gelijkspel 🥟💥',
+    text: `${joke ? joke + ' ' : ''}${text} ⏱️ Getal = seconden overleefd.`, winners, scores,
   });
 }

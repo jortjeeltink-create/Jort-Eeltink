@@ -166,7 +166,13 @@ html, body {
 @keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
 
 .pv-over { padding-top: min(6vh, 40px); }
-.pv-result { text-align: center; font-size: clamp(26px, min(9vw, 8vh), 54px); animation: pop2 .5s ease-out; }
+.pv h1.pv-result { text-align: center; font-size: clamp(26px, min(9vw, 8vh), 54px); animation: pop2 .5s ease-out; }
+@media (max-height: 500px) {
+  .pv-over { gap: 8px; padding-top: 4px; }
+  .pv-rank { padding: 4px 10px; }
+  .pv-rank .pv-p-emoji { font-size: 20px; }
+  .pv-over .pv-btn { height: 46px; }
+}
 .pv-over > .pv-row, .pv-over > .pv-wait { position: sticky; bottom: 0; padding: 10px 0 4px; background: linear-gradient(transparent, rgba(13,12,29,.95) 30%); }
 @keyframes pop2 { from { transform: scale(.5); opacity: 0; } }
 .pv-ranking { display: flex; flex-direction: column; gap: 8px; }

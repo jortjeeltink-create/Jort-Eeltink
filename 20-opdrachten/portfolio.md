@@ -2,7 +2,7 @@
 type: portfolio
 tags: [opdracht, portfolio]
 aangemaakt: 2026-10-06
-bijgewerkt: 2026-10-06
+bijgewerkt: 2026-10-09
 ---
 # Portfolio
 
@@ -45,5 +45,4 @@ _Nog geen opdrachten._
 ### [[marketing]]
 | Opdracht | Deadline | Status | Ingeleverd |
 |---|---|---|---|
-
-_Nog geen opdrachten._
+| [[marketingplan-greenride\|Marketingplan GreenRide]] (plan + eindpresentatie, 13 min per groep) | onbekend #vraag | nog te maken | |

@@ -9,7 +9,7 @@ aangemaakt: 2026-10-06
 # Marketing
 
 ## Marketing Studio (site)
-Alle lesstof, flashcards, quiz, hand-outs, het marketingplan GreenRide en oefententamens op één plek, met AI om uit te werken en na te kijken: [Marketing Studio openen](https://claude.ai/artifact/TLsLKBFCsjN7SgDfx3PaBZ). De broncode staat naast deze notitie (`marketing-studio.html`).
+Alle lesstof, flashcards, quiz, hand-outs, het marketingplan GreenRide en oefententamens op één plek, met AI om uit te werken en na te kijken: [Marketing Studio openen](https://claude.ai/artifact/TLsLKBFCsjN7SgDfx3PaBZ). De broncode staat naast deze notitie (`marketing-studio.html`). Delen met vrienden kan via het menu Delen van de pagina; ieder houdt een eigen voortgang (jij bij je Claude-account, vrienden in hun eigen browser).
 
 ## Toetsen en deadlines
 <!-- planner: relevante regels uit [[agenda]] + leerplanning -->

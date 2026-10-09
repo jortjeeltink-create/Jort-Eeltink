@@ -1090,7 +1090,7 @@ const termsOf = n => BEGRIPPEN.filter(b => b.w === n);
 const quizOf = n => QUIZ.filter(q => q.w === n);
 
 /* ===== state ===== */
-const DEFAULT_STATE = { v: 1, weeks: {}, examDate: "", cards: {}, quiz: {}, answers: {}, plan: {}, extraQ: [], exam: null };
+const DEFAULT_STATE = { v: 1, naam: "", weeks: {}, examDate: "", cards: {}, quiz: {}, answers: {}, plan: {}, extraQ: [], exam: null };
 let S = Object.assign(clone(DEFAULT_STATE), lsGet("ms-state", {}));
 let UI = Object.assign({ page: "start", n: 1, wtab: "stof", otab: "kaarten", mtab: "handouts", ttab: "overzicht", caseId: null, filter: [], werkF: "alles", theme: "" }, lsGet("ms-ui", {}));
 let WERK = lsGet("ms-werk", []);
@@ -1102,18 +1102,24 @@ const Store = {
     if (!C?.use) return;
     try {
       const [db, user] = await Promise.all([C.use("db"), C.use("user")]);
+      if (user) { ME.owner = await user.isOwner(); }
       if (!db || !user) return;
       const id = await user.id();
       if (!id) return;
-      this.db = db;
-      this.stateRef = db.collection("data/users/" + id).doc("state");
-      this.werkCol = this.stateRef.collection("werk");
-      let first = true;
+      // Elke bezoeker heeft een eigen, privé plek (data/users/<id>). Wie daar niet mag
+      // schrijven (bijv. vrienden van buiten je account), houdt alles in de eigen browser.
+      const ref = db.collection("data/users/" + id).doc("state");
+      const first = await ref.get();
+      if (first.exists) {
+        const remote = Object.assign(clone(DEFAULT_STATE), first.data());
+        if (!remote.naam && S.naam) remote.naam = S.naam;
+        S = remote; lsSet("ms-state", S);
+      } else {
+        try { await ref.set(clone(S)); } catch { return; }
+      }
+      this.db = db; this.stateRef = ref; this.werkCol = ref.collection("werk"); this.synced = true; this.live = true;
       this.stateRef.onSnapshot(snap => {
-        if (snap.metadata?.hasPendingWrites) return;
-        this.synced = true;
-        if (!snap.exists) { if (first) this.flush(); first = false; return; }
-        first = false;
+        if (snap.metadata?.hasPendingWrites || !snap.exists) return;
         const next = Object.assign(clone(DEFAULT_STATE), snap.data());
         if (JSON.stringify(next) === JSON.stringify(S)) return;
         S = next; lsSet("ms-state", S); softRender();
@@ -1129,8 +1135,8 @@ const Store = {
         WERK = remote;
         lsSet("ms-werk", WERK); softRender();
       }, () => { });
-      this.live = true;
     } catch { }
+    finally { ME.ready = true; softRender(); }
   },
   save() {
     lsSet("ms-state", S);
@@ -1158,6 +1164,9 @@ const Store = {
   }
 };
 const saveUI = () => lsSet("ms-ui", UI);
+const ME = { owner: false, ready: false };
+const naam = () => String(S.naam || (ME.owner ? "Jort" : "")).trim();
+const SITE_URL = "https://claude.ai/artifact/TLsLKBFCsjN7SgDfx3PaBZ";
 
 /* ===== mastery ===== */
 function mastery(n) {
@@ -1336,7 +1345,7 @@ async function runAI(key, job) {
 }
 
 /* ===== prompts ===== */
-const BASIS = `Je bent een ervaren docent Marketing in het hbo (jaar 1, opleiding Business Management, TIO). De student heet Jort. Schrijf in helder, correct Nederlands op hbo-1-niveau.
+const basis = () => `Je bent een ervaren docent Marketing in het hbo (jaar 1, opleiding Business Management, TIO). ${naam() ? "De student heet " + naam() + "; spreek hem of haar aan met je." : "Spreek de student aan met je."} Schrijf in helder, correct Nederlands op hbo-1-niveau.
 Gebruik de begrippen en modellen uit de lesstof hieronder en uit het boek Tuten (2025), Principles of Marketing for a Digital Age (3e druk). Noem modellen en begrippen bij naam en pas ze concreet toe.
 Verzin geen feiten of cijfers over een casus: gebruik alleen de gegevens uit de casus. Doe je een aanname, zeg dat er dan bij.
 Geef je antwoord in Markdown (koppen, opsommingen en tabellen waar dat helpt). Begin direct met de inhoud, zonder inleidend praatje en zonder afsluitende vraag.`;
@@ -1359,54 +1368,54 @@ const caseText = c => `HAND-OUT (${c.lw}): ${c.titel}\nThema: ${c.thema}${c.tijd
 const greenrideCases = () => CASES.filter(c => /GreenRide/i.test(c.titel + c.casus)).map(c => `- ${c.lw} ${c.titel}: ${c.casus.replace(/\n+/g, " ")}`).join("\n");
 
 const P = {
-  uitwerking: c => `${BASIS}
+  uitwerking: c => `${basis()}
 
 TAAK: Maak een complete, sterke uitwerking van deze hand-out uit de les Marketing, zoals een student die een 8 of hoger haalt hem zou inleveren. Beantwoord elke vraag onder een eigen kop ("Vraag 1", "Vraag 2", …) en herhaal de vraag kort in cursief. Onderbouw elk antwoord met het juiste model of begrip én met concrete gegevens uit de casus. Gebruik een tabel waar dat helpt (SWOT, positioneringskaart, budgetverdeling). Sluit af met een kop "Gebruikte begrippen" met een korte lijst.
 
 ${caseText(c)}
 
 ${lesstof([c.w])}`,
-  feedback: (c, ans) => `${BASIS}
+  feedback: (c, ans) => `${basis()}
 
-TAAK: Jort heeft deze hand-out zelf beantwoord. Kijk het na als docent. Geef per vraag: een cijfer (1-10), wat goed is, wat ontbreekt of niet klopt (met het juiste begrip), en een verbeterde versie van Jorts antwoord. Wees eerlijk en concreet, en bemoedigend. Sluit af met "Tips voor het casetentamen" (maximaal 3).
+TAAK: De student heeft deze hand-out zelf beantwoord. Kijk het na als docent. Geef per vraag: een cijfer (1-10), wat goed is, wat ontbreekt of niet klopt (met het juiste begrip), en een verbeterde versie van het antwoord van de student. Wees eerlijk en concreet, en bemoedigend. Sluit af met "Tips voor het casetentamen" (maximaal 3).
 
 ${caseText(c)}
 
-ANTWOORDEN VAN JORT:
+ANTWOORDEN VAN DE STUDENT:
 ${c.vragen.map((v, i) => `Vraag ${i + 1}: ${(ans[i] || "").trim() || "(niet beantwoord)"}`).join("\n\n")}
 
 ${lesstof([c.w])}`,
-  uitleg: n => `${BASIS}
+  uitleg: n => `${basis()}
 
 TAAK: Geef bijles over ${lw(n)} (${week(n).titel}). Leg per onderwerp de stof uit in gewone taal, geef een voorbeeld met GreenRide of een bekend merk, en noem de valkuil die studenten vaak maken. Eindig met 5 controlevragen; zet de antwoorden eronder onder een kop "Antwoorden".
 
 ${lesstof([n])}`,
-  samenvatting: n => `${BASIS}
+  samenvatting: n => `${basis()}
 
 TAAK: Maak een compacte samenvatting van ${lw(n)} (${week(n).titel}) om mee te leren voor het casetentamen (maximaal één A4). Gebruik per onderwerp korte bullets met de kern, de definities die je letterlijk moet kennen, en bij elk model wanneer je het in een casus gebruikt. Sluit af met "Zo komt het in een casus terug" met 2 voorbeeldvragen.
 
 ${lesstof([n])}`,
-  denkvraag: (n, q) => `${BASIS}
+  denkvraag: (n, q) => `${basis()}
 
 TAAK: Beantwoord deze denkvraag uit de les kort en goed (maximaal 150 woorden), met een concreet voorbeeld. Denkvraag: "${q}"
 
 ${lesstof([n], false)}`,
-  stelling: (n, s) => `${BASIS}
+  stelling: (n, s) => `${basis()}
 
-TAAK: Bereid Jort voor op de klassikale discussie over de stelling: "${s}". Geef 3 sterke argumenten vóór en 3 tegen, elk met een voorbeeld, en sluit af met een onderbouwd eigen standpunt (5-7 zinnen) dat Jort kan gebruiken. Koppel de argumenten aan de begrippen uit de les.
+TAAK: Bereid de student voor op de klassikale discussie over de stelling: "${s}". Geef 3 sterke argumenten vóór en 3 tegen, elk met een voorbeeld, en sluit af met een onderbouwd eigen standpunt (5-7 zinnen) dat de student kan gebruiken. Koppel de argumenten aan de begrippen uit de les.
 
 ${lesstof([n], false)}`,
-  begrip: b => `${BASIS}
+  begrip: b => `${basis()}
 
 TAAK: Leg het begrip "${b.term}" uit (lesweek ${lw(b.w)}) in maximaal 120 woorden, met een concreet voorbeeld en een ezelsbruggetje om het te onthouden. Definitie uit de les: ${b.def}`,
-  quiz: (ns, k) => `${BASIS}
+  quiz: (ns, k) => `${basis()}
 
 TAAK: Maak ${k} nieuwe meerkeuzevragen over de lesstof hieronder, met 4 antwoordopties en 1 juist antwoord. Mix kennisvragen met toepassingsvragen met een mini-casus (zoals in een casetentamen). Varieer de positie van het juiste antwoord.
 Antwoord met alleen een JSON-array, zonder andere tekst: [{"vraag":"...","opties":["...","...","...","..."],"juist":0,"uitleg":"...","w":4}]
 "juist" is de index (0-3) van het juiste antwoord, "uitleg" is één zin, "w" is het nummer van de lesweek.
 
 ${lesstof(ns, false)}`,
-  examen: (ns) => `${BASIS}
+  examen: (ns) => `${basis()}
 
 TAAK: Maak een oefententamen in de stijl van het casetentamen Marketing (135 minuten, toepassing van marketingconcepten op één casus, geen hulpmiddelen).
 Schrijf een nieuwe, realistische casus van 450-650 woorden over een fictief Nederlands bedrijf (niet GreenRide) met concrete gegevens: doelgroepen, concurrenten, cijfers, trends, prijzen, kanalen en klantreacties. Alle gegevens die nodig zijn voor de vragen staan in de casus.
@@ -1414,23 +1423,23 @@ Stel daarna 6 open vragen die samen de leerdoelen dekken${ns.length < 10 ? ` en 
 Antwoord met alleen JSON, zonder andere tekst: {"titel":"...","casus":"... (Markdown mag)","vragen":[{"vraag":"...","punten":15,"leerdoel":3}]}
 
 ${cursus()}`,
-  nakijken: (ex, ans) => `${BASIS}
+  nakijken: (ex, ans) => `${basis()}
 
-TAAK: Kijk dit oefententamen na als examinator. Geef per vraag: behaalde punten / maximum, wat goed is, wat ontbreekt (met de juiste begrippen) en een kort modelantwoord. Eindig met: totaalscore (x/100), een cijfer (1-10, waarbij 55 punten een 5,5 is) en de 3 belangrijkste verbeterpunten met de lesweek die Jort moet herhalen (LW01-LW10).
+TAAK: Kijk dit oefententamen na als examinator. Geef per vraag: behaalde punten / maximum, wat goed is, wat ontbreekt (met de juiste begrippen) en een kort modelantwoord. Eindig met: totaalscore (x/100), een cijfer (1-10, waarbij 55 punten een 5,5 is) en de 3 belangrijkste verbeterpunten met de lesweek die de student moet herhalen (LW01-LW10).
 
 OEFENTENTAMEN: ${ex.titel}
 
 Casus:
 ${ex.casus}
 
-${ex.vragen.map((v, i) => `Vraag ${i + 1} (${v.punten} punten): ${v.vraag}\nAntwoord van Jort: ${(ans[i] || "").trim() || "(niet beantwoord)"}`).join("\n\n")}
+${ex.vragen.map((v, i) => `Vraag ${i + 1} (${v.punten} punten): ${v.vraag}\nAntwoord van de student: ${(ans[i] || "").trim() || "(niet beantwoord)"}`).join("\n\n")}
 
 ${cursus()}`,
-  plan: () => `${BASIS}
+  plan: () => `${basis()}
 
-TAAK: Dit is de praktijkopdracht "Marketingplan GreenRide". Een computervirus heeft delen van het plan vernietigd: elke plek met ⟦vul in⟧ moet worden ingevuld. Schrijf het complete marketingplan uit, met alle 11 hoofdstukken in dezelfde volgorde en met dezelfde koppen. Neem de bestaande tekst over en vul elke ⟦vul in⟧ inhoudelijk sterk in; zet de ingevulde delen **vet** zodat Jort ziet wat nieuw is (laat de tekens ⟦ en ⟧ weg).
+TAAK: Dit is de praktijkopdracht "Marketingplan GreenRide". Een computervirus heeft delen van het plan vernietigd: elke plek met ⟦vul in⟧ moet worden ingevuld. Schrijf het complete marketingplan uit, met alle 11 hoofdstukken in dezelfde volgorde en met dezelfde koppen. Neem de bestaande tekst over en vul elke ⟦vul in⟧ inhoudelijk sterk in; zet de ingevulde delen **vet** zodat de student ziet wat nieuw is (laat de tekens ⟦ en ⟧ weg).
 Zorg voor een rode draad: doelgroep, positionering, SMART-doelstellingen, 4P's, customer journey (AIDA), KPI's en implementatieplan moeten op elkaar aansluiten. Gebruik waar passend gegevens uit de GreenRide-casussen van de lessen en zeg erbij dat ze daaruit komen. Let op: in dit plan gaat het om elektrische deelfietsen, in de meeste lescasussen om deelscooters.
-Sluit af met een kop "Toelichting op de keuzes" (5-8 bullets) zodat Jort de keuzes kan uitleggen.
+Sluit af met een kop "Toelichting op de keuzes" (5-8 bullets) zodat de student de keuzes kan uitleggen.
 
 MARKETINGPLAN GREENRIDE:
 ${PLAN_MD}
@@ -1439,7 +1448,7 @@ GREENRIDE IN DE LESCASUSSEN:
 ${greenrideCases()}
 
 ${lesstof([3, 4, 5, 6, 7, 8, 9, 10], false)}`,
-  presentatie: (filled) => `${BASIS}
+  presentatie: (filled) => `${basis()}
 
 TAAK: Maak de eindpresentatie over het Marketingplan GreenRide. Eisen: ${PRESENTATIE.tijd}; verplichte onderdelen: ${PRESENTATIE.verplicht.join(", ")}; beoordelingscriteria: ${PRESENTATIE.criteria.join(", ")}; een duidelijke rode draad.
 Geef per dia: titel, wat er op de dia staat (maximaal 5 korte bullets), de spreektekst en de tijd in minuten. Maak 11-14 dia's die samen 13 minuten duren. Verdeel de spreekbeurten over 4 sprekers (Spreker 1-4) voor het criterium samenwerking. Eindig met 5 vragen die de docent kan stellen, elk met een goed antwoord.
@@ -1447,10 +1456,10 @@ Geef per dia: titel, wat er op de dia staat (maximaal 5 korte bullets), de spree
 ${filled ? "INGEVULD MARKETINGPLAN:\n" + filled : "MARKETINGPLAN (nog niet ingevuld; maak zelf passende, onderbouwde keuzes voor de ⟦vul in⟧-plekken):\n" + PLAN_MD}
 
 ${lesstof([3, 4, 10], false)}`,
-  vrij: (type, text, ns) => `${BASIS}
+  vrij: (type, text, ns) => `${basis()}
 
 ${({
-      opdracht: "TAAK: Maak deze opdracht volledig, als eindproduct dat Jort kan inleveren (de school staat AI toe). Volg de opdracht precies en loop elk beoordelingscriterium langs dat erin staat. Gebruik de modellen uit de lesstof. Sluit af met een kop \"Zo leg je het uit\" (3-5 bullets in gewone taal) zodat Jort het kan toelichten als ernaar gevraagd wordt.",
+      opdracht: "TAAK: Maak deze opdracht volledig, als eindproduct dat de student kan inleveren (de school staat AI toe). Volg de opdracht precies en loop elk beoordelingscriterium langs dat erin staat. Gebruik de modellen uit de lesstof. Sluit af met een kop \"Zo leg je het uit\" (3-5 bullets in gewone taal) zodat de student het kan toelichten als ernaar gevraagd wordt.",
       handout: "TAAK: Maak een nieuwe hand-out (oefencasus) in precies de stijl van de lessen: kop \"HANDOUT – CASUS\", titel, Lesweek / Dia, Thema, Complexiteit (balkjes, x/10), Beschikbare tijd, Casus (een fictief maar realistisch bedrijf, 120-200 woorden, met concrete gegevens), Opdracht met 3 vragen. Zet daarna onder een kop \"Antwoordmodel\" de complete uitwerking.",
       uitwerken: "TAAK: Werk deze opdracht of hand-out volledig uit. Beantwoord elke vraag onder een eigen kop, onderbouwd met het juiste model of begrip en met gegevens uit de tekst.",
       samenvatting: "TAAK: Maak een heldere samenvatting om mee te leren voor het casetentamen: per onderwerp de kern in bullets, de definities die je moet kennen en bij elk model wanneer je het gebruikt.",
@@ -1458,7 +1467,7 @@ ${({
       verslag: "TAAK: Schrijf het verslag of werkstuk volledig uit met inleiding, kern (met tussenkoppen) en conclusie/advies. Volg de opdracht en de beoordelingscriteria precies."
     })[type]}
 
-OPDRACHT / WENS VAN JORT:
+OPDRACHT / WENS VAN DE STUDENT:
 ${text}
 
 ${ns.length ? lesstof(ns, ns.length <= 3) : cursus()}`
@@ -1496,6 +1505,29 @@ const pill = s => `<span class="pill s${s}">${STATUS[s]}</span>`;
 const wstat = n => +(S.weeks[n] || 0);
 const cxMeter = c => c.complex ? `<span class="cx" aria-label="Complexiteit ${c.complex} van 10">${Array.from({ length: 10 }, (_, i) => `<i class="${i < c.complex ? "on" : ""}"></i>`).join("")}</span>` : "";
 
+const opslagTekst = () => Store.live ? "Je voortgang en werk worden bewaard bij je eigen Claude-account en staan ook op je telefoon. Niemand anders kan ze zien." : "Je voortgang en werk worden alleen in deze browser bewaard. Gebruik steeds dezelfde browser en geen privévenster. Niemand anders kan ze zien.";
+
+function profielHTML() {
+  const n = naam();
+  return `<section class="sec"><h2 class="h2">${n ? "Jouw profiel" : "Welkom! Hoe heet je?"}</h2>
+    <div class="card" style="display:grid;gap:12px">
+      <div class="row"><input class="input" id="naamIn" value="${esc(S.naam || n)}" placeholder="Je voornaam" autocomplete="given-name" aria-label="Je voornaam" style="max-width:260px"><button class="btn ${n ? "ghost" : ""}" data-act="naam">Opslaan</button></div>
+      <p class="note">${n ? "De AI noemt je bij deze naam. " : "Dan noemt de AI je bij je naam. "}${opslagTekst()}</p>
+    </div></section>`;
+}
+function delenHTML() {
+  if (!ME.owner) return "";
+  return `<section class="sec"><h2 class="h2">Delen met vrienden</h2>
+    <div class="card" style="display:grid;gap:12px">
+      <ol class="goals" style="color:var(--ink)">
+        <li>Open het menu <b>Delen</b> van deze pagina in Claude. Zet delen via een link aan, of nodig vrienden uit met hun e-mailadres.</li>
+        <li>Stuur ze deze link:</li>
+      </ol>
+      <div class="row"><input class="input mono" id="shareUrl" readonly value="${SITE_URL}" aria-label="Link naar de site" style="max-width:420px;font-size:13px"><button class="btn" data-act="copylink">${ICON.copy}Kopieer link</button></div>
+      <p class="note">Iedereen heeft zijn eigen voortgang, flashcards, antwoorden en Mijn werk. Vrienden zien niets van jou, en jij niets van hen. Zijn ze ingelogd bij Claude, dan werken de AI-knoppen voor hen ook, op hun eigen account. Lesstof, flashcards en quiz werken altijd.</p>
+    </div></section>`;
+}
+
 /* ===== pagina: start ===== */
 function pStart() {
   const d = daysLeft();
@@ -1505,7 +1537,7 @@ function pStart() {
   <div class="mtop"><div class="brand" style="padding:0"><div class="brand-mark" aria-hidden="true">M</div><div><b>Marketing Studio</b><small>TIO · BM · JAAR 1</small></div></div>
     <div class="theme-tg" role="group" aria-label="Thema">${[["", "Auto"], ["light", "Licht"], ["dark", "Donker"]].map(([v, l]) => `<button type="button" data-act="theme" data-v="${v}" aria-pressed="${(UI.theme || "") === v}">${l}</button>`).join("")}</div></div>
   <header class="hero">
-    <div class="head"><div class="eyebrow">Marketing · lesweek 1 t/m 11</div>
+    <div class="head"><div class="eyebrow">${naam() ? "Hoi " + esc(naam()) + " · " : ""}Marketing · lesweek 1 t/m 11</div>
     <h1 class="title">Alles voor het <span class="hl">casetentamen</span> op één plek</h1>
     <p class="lead">De stof van alle elf lesweken, de hand-outs, het marketingplan GreenRide en oefenen met AI.</p></div>
     <div class="hero-grid">
@@ -1525,6 +1557,8 @@ function pStart() {
       </div>
     </div>
   </header>
+
+  ${ME.ready && !naam() ? profielHTML() : ""}
 
   ${nextW ? `<section class="card next"><div class="t"><div class="eyebrow">Volgende stap</div><div class="h3">${lw(nextW.n)}: ${esc(nextW.titel)}</div><p class="muted">${esc(nextW.sub)} · ${termsOf(nextW.n).length} begrippen · ${CASES.filter(c => c.w === nextW.n).length} casus${CASES.filter(c => c.w === nextW.n).length === 1 ? "" : "sen"}</p></div>
     <div class="row"><button class="btn" data-act="go" data-page="week" data-n="${nextW.n}">Ga leren</button><button class="btn ghost" data-act="practice" data-n="${nextW.n}">Overhoor mij</button></div></section>`
@@ -1549,9 +1583,13 @@ function pStart() {
     <ol class="ld card">${LEERDOELEN.map(l => `<li><span class="n">${pad2(l.n)}</span><div>${esc(l.t)}<div class="links">${l.w.map(n => `<button class="lwlink" data-act="go" data-page="week" data-n="${n}">${lw(n)}</button>`).join("")}</div></div></li>`).join("")}</ol>
   </section>
 
+  ${delenHTML()}
+
   <section class="sec"><div class="sec-head"><h2 class="h2">Laatst gemaakt</h2><button class="btn sm ghost" data-act="go" data-page="maken" data-mtab="werk">Alles in Mijn werk</button></div>
     ${recent.length ? `<div class="wk-list">${recent.map(werkRow).join("")}</div>` : `<div class="empty">Alles wat je met AI maakt, komt hier en in Mijn werk te staan.</div>`}
-  </section>`;
+  </section>
+
+  ${ME.ready && naam() ? profielHTML() : ""}`;
 }
 
 /* ===== pagina: lesstof ===== */
@@ -1725,7 +1763,7 @@ function pMaken() {
     const list = WERK.filter(w => UI.werkF === "alles" || w.type === UI.werkF);
     body = WERK.length ? `<div class="chips">${types.map(t => `<button class="chip" aria-pressed="${UI.werkF === t}" data-act="werkf" data-v="${t}">${t === "alles" ? "Alles" : esc(TYPE_L[t] || t)}</button>`).join("")}</div>
       <div class="wk-list">${list.map(werkRow).join("")}</div>
-      <p class="note">${Store.live ? "Je werk wordt bewaard bij je Claude-account en staat ook op je telefoon." : "Je werk wordt bewaard in deze browser."}</p>`
+      <p class="note">${opslagTekst()}</p>`
       : `<div class="empty"><b>Nog niets gemaakt</b>Uitwerkingen, samenvattingen, nagekeken tentamens en je marketingplan komen hier te staan.<button class="btn" data-act="tab" data-tab="mtab" data-v="handouts">Begin met een hand-out</button></div>`;
   }
   return `<header class="head"><div class="eyebrow">Maken</div><h1 class="title">Opdrachten en <span class="hl">hand-outs</span></h1></header>
@@ -1837,9 +1875,9 @@ function pCoach() {
   <div class="composer"><textarea id="chatIn" rows="1" placeholder="Typ je vraag…" aria-label="Je vraag"></textarea><div class="row">${CHAT.busy ? `<button class="btn ghost" data-act="chat-stop">Stop</button>` : `<button class="btn" data-act="chat-send">Stuur</button>`}</div></div>
   ${m.length ? `<div class="row"><button class="btn sm ghost" data-act="chat-clear">Nieuw gesprek</button></div>` : ""}`;
 }
-const COACH_RULES = () => `${BASIS.replace("Begin direct met de inhoud, zonder inleidend praatje en zonder afsluitende vraag.", "")}
-Je bent Jorts persoonlijke studiecoach voor het casetentamen Marketing. Houd antwoorden kort (meestal onder de 200 woorden) tenzij Jort om meer vraagt. Leg uit met voorbeelden (GreenRide of bekende merken).
-Als Jort overhoord wil worden: stel één vraag tegelijk, wacht op het antwoord, geef dan kort feedback (goed / wat ontbreekt) en stel de volgende vraag.
+const COACH_RULES = () => `${basis().replace("Begin direct met de inhoud, zonder inleidend praatje en zonder afsluitende vraag.", "")}
+Je bent de persoonlijke studiecoach van de student voor het casetentamen Marketing. Houd antwoorden kort (meestal onder de 200 woorden) tenzij de student om meer vraagt. Leg uit met voorbeelden (GreenRide of bekende merken).
+Als de student overhoord wil worden: stel één vraag tegelijk, wacht op het antwoord, geef dan kort feedback (goed / wat ontbreekt) en stel de volgende vraag.
 
 ${cursus()}`;
 async function chatSend(text) {
@@ -1941,6 +1979,8 @@ document.addEventListener("click", e => {
   else if (a === "theme") { UI.theme = ds.v; saveUI(); applyTheme(); paintNav(); }
   else if (a === "wstatus") { S.weeks[ds.n] = +ds.v; Store.save(); render(); }
   else if (a === "setdate") { const v = $("#" + ds.src)?.value; if (!v) { toast("Kies eerst een datum."); return; } S.examDate = v; Store.save(); render(); toast("Datum opgeslagen. Je leerplan staat onder Tentamen."); }
+  else if (a === "naam") { const v = ($("#naamIn")?.value || "").trim().slice(0, 40); S.naam = v; Store.save(); render(); toast(v ? "Hoi " + v + "!" : "Naam gewist"); }
+  else if (a === "copylink") copyText(SITE_URL);
   else if (a === "cleardate") { S.examDate = ""; Store.save(); render(); }
   else if (a === "practice") { UI.filter = [+ds.n]; UI.otab = "kaarten"; FC.key = ""; go("oefenen"); }
   else if (a === "quizweek") { UI.filter = [+ds.n]; UI.otab = "quiz"; QZ.key = ""; go("oefenen"); }
@@ -1999,6 +2039,7 @@ document.addEventListener("change", e => {
 });
 document.addEventListener("keydown", e => {
   if (e.key === "Escape" && !$("#sheet").hidden) { closeSheet(); return; }
+  if (e.target.id === "naamIn" && e.key === "Enter") { e.preventDefault(); $('[data-act="naam"]')?.click(); return; }
   if (e.target.id === "chatIn" && e.key === "Enter" && !e.shiftKey) { e.preventDefault(); chatSend(e.target.value); return; }
   if (UI.page === "oefenen" && UI.otab === "kaarten" && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) && $("#sheet").hidden) {
     if (e.key === " " && e.target.tagName !== "BUTTON") { e.preventDefault(); FC.flip = !FC.flip; $(".fc")?.classList.toggle("flip", FC.flip); }

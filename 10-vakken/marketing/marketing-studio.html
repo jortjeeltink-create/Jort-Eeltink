@@ -1300,7 +1300,7 @@ function aiGuard() {
   return false;
 }
 const aiOffNote = () => AI.status === "geweigerd" ? '<p class="ai-off">Je hebt AI voor deze pagina niet toegestaan. Laad de pagina opnieuw om het alsnog toe te staan. Lesstof, flashcards en quiz werken gewoon.</p>'
-  : AI.status === "uit" ? '<p class="ai-off">De AI-knoppen werken als je deze pagina opent in Claude (claude.ai of de app). Alle lesstof, flashcards en de quiz werken altijd.</p>' : "";
+  : AI.status === "uit" ? '<p class="ai-off">De AI-knoppen werken als je ingelogd bent bij Claude (claude.ai of de app) en gebruiken dan je eigen account. Alle lesstof, flashcards en de quiz werken altijd.</p>' : "";
 const DENIED = ["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"];
 const noteDenied = e => { if (DENIED.includes(e?.code)) AI.status = "geweigerd"; };
 
@@ -1512,7 +1512,7 @@ function profielHTML() {
   return `<section class="sec"><h2 class="h2">${n ? "Jouw profiel" : "Welkom! Hoe heet je?"}</h2>
     <div class="card" style="display:grid;gap:12px">
       <div class="row"><input class="input" id="naamIn" value="${esc(S.naam || n)}" placeholder="Je voornaam" autocomplete="given-name" aria-label="Je voornaam" style="max-width:260px"><button class="btn ${n ? "ghost" : ""}" data-act="naam">Opslaan</button></div>
-      <p class="note">${n ? "De AI noemt je bij deze naam. " : "Dan noemt de AI je bij je naam. "}${opslagTekst()}</p>
+      <p class="note">${n ? "De AI noemt je bij deze naam. " : "Dan noemt de AI je bij je naam. "}${opslagTekst()}${ME.owner ? "" : " De AI-knoppen gebruiken je eigen Claude-account."}</p>
     </div></section>`;
 }
 function delenHTML() {
@@ -1524,7 +1524,11 @@ function delenHTML() {
         <li>Stuur ze deze link:</li>
       </ol>
       <div class="row"><input class="input mono" id="shareUrl" readonly value="${SITE_URL}" aria-label="Link naar de site" style="max-width:420px;font-size:13px"><button class="btn" data-act="copylink">${ICON.copy}Kopieer link</button></div>
-      <p class="note">Iedereen heeft zijn eigen voortgang, flashcards, antwoorden en Mijn werk. Vrienden zien niets van jou, en jij niets van hen. Zijn ze ingelogd bij Claude, dan werken de AI-knoppen voor hen ook, op hun eigen account. Lesstof, flashcards en quiz werken altijd.</p>
+      <ul class="goals" style="color:var(--ink-2)">
+        <li><b>Eigen voortgang:</b> iedereen heeft zijn eigen flashcards, quizscores, antwoorden en Mijn werk. Vrienden zien niets van jou, en jij niets van hen.</li>
+        <li><b>Jouw AI blijft van jou:</b> een AI-knop gebruikt altijd het Claude-account van wie erop klikt. Vrienden kunnen jouw tegoed niet gebruiken. Zonder eigen Claude-account werken voor hen alleen lesstof, flashcards en quiz.</li>
+        <li><b>Geef alleen kijkrechten,</b> geen bewerkrechten. Iemand met bewerkrechten kan de site aanpassen.</li>
+      </ul>
     </div></section>`;
 }
 

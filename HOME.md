@@ -2,7 +2,7 @@
 type: home
 tags: [home]
 aangemaakt: 2026-10-06
-bijgewerkt: 2026-10-09
+bijgewerkt: 2026-10-29
 ---
 # 🧠 Brein van Jort
 
@@ -12,6 +12,7 @@ _Nog niets gepland. Voeg een toets toe met `/toets`._
 
 ## 🧰 Sites
 - [Marketing Studio](https://claude.ai/artifact/TLsLKBFCsjN7SgDfx3PaBZ): lesstof, oefenen, hand-outs en oefententamens voor [[marketing]]
+- [Brancheonderzoek Generatieve AI](https://claude.ai/artifact/9b5v8w6vxURbcdt1nVLmhq): presentatiewebsite voor de eindpresentatie van [[mapping-the-business]]
 
 ## 📚 Vakken
 <!-- ordenaar: link naar elk vak-overzicht -->
@@ -25,6 +26,7 @@ _Nog niets gepland. Voeg een toets toe met `/toets`._
 ## 📝 Lopende opdrachten
 <!-- ordenaar: actieve opdrachten met deadline -->
 - [[marketingplan-greenride|Marketingplan GreenRide]] ([[marketing]]): plan aanvullen + eindpresentatie (13 min). Deadline nog onbekend.
+- [[brancheonderzoek-generatieve-ai|Brancheonderzoek Generative AI]] ([[mapping-the-business]]): uitgewerkt; nog zelf: winkelfoto's, podcast, vlog, reflectie. Deadline zondag week 12 (datum nog onbekend).
 
 Alles staat in het [[portfolio]].
 

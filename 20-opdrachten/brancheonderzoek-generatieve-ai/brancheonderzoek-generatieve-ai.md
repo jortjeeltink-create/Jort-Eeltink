@@ -10,7 +10,7 @@ aangemaakt: 2026-10-29
 
 Vak: [[mapping-the-business]] · Overzicht: [[portfolio]]
 
-Eindproduct: [[brancheonderzoek-generatieve-ai-eindproduct]] (tekst per opdracht) en de presentatiewebsite `brancheonderzoek-generatieve-ai-site.html` in deze map.
+Eindproduct: [[brancheonderzoek-generatieve-ai-eindproduct]] (tekst per opdracht) en de presentatiewebsite `brancheonderzoek-generatieve-ai-site.html` in deze map, online als [Brancheonderzoek Generatieve AI](https://claude.ai/artifact/9b5v8w6vxURbcdt1nVLmhq) (privé, delen via het Share-menu).
 
 ## Opdracht
 Brancheonderzoek naar Jorts specialisatie **Digital Business & Generative AI**, verdeeld over lesweek 1 t/m 11 (overzicht van Jort, op basis van de PowerPoints):
@@ -52,10 +52,50 @@ Brancheonderzoek naar Jorts specialisatie **Digital Business & Generative AI**, 
 - [ ] Definitieve deadline controleren op Blackboard
 
 ## Opzet
-_Volgt na het eindproduct._
+**Rode draad:** generatieve AI als keten van chip tot app (ASML → TSMC → Nvidia → cloud → modelmaker → app), met OpenAI als voorbeeldbedrijf voor de bedrijfsgerichte opdrachten.
+
+**Wat er per lesweek in staat en waarom:**
+- **1 Branche en tijdlijn:** 509 woorden over wat generatieve AI is, de keten, de markt en Nederland (ASML, gebruik door Nederlanders en bedrijven), plus een tijdlijn van 14 momenten (1950–2026) met foto's.
+- **2 PESTEL:** per factor 85–95 woorden (samen ± 540), zodat de tegenstrijdige eisen (500 totaal, 100 per factor) allebei ongeveer kloppen. Technologisch en juridisch wegen het zwaarst.
+- **3 Verdieping technologisch:** AI komt in winkels en producten. Vijf voorbeelden die Jort zelf kan bezoeken (Coolblue, Apple Store, Samsung/Gemini, Albert Heijn, opticien met Ray-Ban Meta) en een LinkedIn-post die klaarstaat voor Jorts eigen foto's.
+- **4 Podcast MVO:** solo-script van 649 woorden (± 4,5 min) over planet, people, een succesverhaal en greenwashing, met shownotes, 3 SDG's (7, 8, 9) en een greenwashing-voorbeeld (Microsoft en Google).
+- **5 Visionboard 2051:** de prompt, 8 AI-voorspellingen en per voorspelling een oordeel (onderbouwd, aannemelijk, speculatief) met bron. Zo laat Jort zien dat hij de AI-uitkomsten beoordeelt.
+- **6 Klanten:** klantonderzoek met Eurostat-, CBS- en NBER-cijfers, drie persona's (student, mkb-ondernemer, professional) en een customer journey voor de student met online en offline contactmomenten en een gevoelslijn.
+- **7 Distributie:** twee schema's met pijlen: ChatGPT voor consumenten (6 kanalen) en de API/Business/Enterprise (6 kanalen), met toeleveranciers, prijzen en verbanden.
+- **8 Porter:** 306 woorden; concurrentie en leveranciers hoog, afnemers middel–hoog, nieuwkomers en substituten middel. Plus een draaiboek voor de vlog.
+- **9 Stakeholders:** 10 stakeholders van OpenAI met scores voor macht en belang, als poster in een Power Interest Matrix.
+- **10 Conclusie:** drie inzichten, een tijdschema van ± 13 minuten en een checklist voor de presentatie.
+- **11 Reflectie:** alleen de vragen; de tekst schrijft Jort zelf.
+
+**Website:** scrollen als een vlucht door een neuraal netwerk (geïnspireerd op het scrollen van intothewoods.nl/ade), met een horizontale tijdlijn, een PESTEL-radar die meeloopt en een stakeholdermatrix die zich vult. Voor de presentatie: → en ← springen per onderdeel, T start de timer (groen tussen 10 en 15 minuten), F zet volledig scherm aan.
+
+**Checklist beoordelingscriteria:**
+- [x] LW1: 500 woorden met afbeeldingen + tijdlijn met jaartallen en afbeeldingen → eindproduct § Lesweek 1, site hoofdstuk 01
+- [x] LW2: zes PESTEL-factoren met beeld en APA → § Lesweek 2, site 02
+- [x] LW3: één factor, minimaal vier voorbeelden, LinkedIn-post ≤ 300 woorden met APA → § Lesweek 3, site 03 (foto's: Jort)
+- [ ] LW3: eigen foto's van winkelbezoeken (Jort)
+- [x] LW4: script, SDG's en greenwashing → § Lesweek 4, site 04
+- [ ] LW4: opname van 3–5 minuten (Jort)
+- [x] LW5: trends, AI gebruikt en beoordeeld, visueel visionboard → § Lesweek 5, site 05
+- [x] LW6: minimaal drie persona's met bronnen + visuele customer journey online/offline → § Lesweek 6, site 06
+- [x] LW7: twee producten, schema's met pijlen, alle kanalen en verbanden → § Lesweek 7, site 07
+- [x] LW8: Porter in ± 300 woorden → § Lesweek 8, site 08
+- [ ] LW8: vlog van minimaal 1 minuut (Jort)
+- [x] LW9: 5–10 stakeholders in een Power Interest Matrix als poster → § Lesweek 9, site 09
+- [x] LW10: presentatie (de website) met tijdschema van 10–15 minuten → site 10
+- [ ] LW11: reflectie van 500–600 woorden (Jort)
+- [ ] Portfolio in Word (14–20 A4) met voorblad, inhoudsopgave, links naar podcast en vlog en bijlagen
 
 ## Materiaal
-_Volgt na het onderzoek._
+- [[generatieve-ai-branche-en-tijdlijn]]: achtergrond, grote spelers, tijdlijn en foto's (LW1)
+- [[pestel-generatieve-ai]]: PESTEL met bronnen (LW2)
+- [[generatieve-ai-in-winkels-en-producten]]: voorbeelden en bezoektips (LW3)
+- [[mvo-generatieve-ai]]: planet, people, succesverhalen, greenwashing, SDG's (LW4)
+- [[ai-trends-toekomst]]: trends en beoordeling voor 2051 (LW5)
+- [[ai-gebruikers-en-klanten]]: klantcijfers voor persona's en journey (LW6)
+- [[openai-bedrijfsanalyse]]: distributie, Porter en stakeholders van OpenAI (LW7–9)
+
+**Nog controleren vóór de presentatie** (#vraag in de notities): prijzen van ChatGPT Business en de API (alleen commerciële bronnen), de eigendomsverhouding van OpenAI na 2025, of iOS 27 echt Claude en Gemini in Siri toelaat, en de nationale aanpak voor datacenters.
 
 ## Concepten
 
@@ -64,3 +104,4 @@ _Volgt na het onderzoek._
 ## Logboek
 - 2026-10-29: opdracht aangemaakt; Jort vroeg om een presentatiewebsite (test) met scrollgevoel zoals intothewoods.nl/ade, in een futuristische ICT/AI-stijl, los van de speelhal-site.
 - 2026-10-29: voorbeeldbedrijf voor lesweek 7 en 9 is **OpenAI** (keuze van het brein, Jort kan dit nog wijzigen).
+- 2026-10-29: onderzoek (7 bronnotities), eindproduct en presentatiewebsite gemaakt. Ontwerp op verzoek van Jort: ICT/AI/computer-achtig met een futuristische achtergrond.

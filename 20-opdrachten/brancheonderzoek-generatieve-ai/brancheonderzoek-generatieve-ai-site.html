@@ -54,6 +54,8 @@ img { max-width: 100%; }
 .kicker > span + span { color: var(--ink-3); }
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .wrap { width: 100%; max-width: 1220px; margin-inline: auto; padding-left: var(--gl); padding-right: var(--gr); }
+a.ref { font-family: var(--f-mono); font-size: .76em; font-weight: 400; color: var(--ink-3); text-decoration: none; white-space: nowrap; letter-spacing: -.01em; }
+a.ref:hover { color: var(--cyan); text-decoration: underline; }
 sup.c, a.c { font-family: var(--f-mono); font-size: .68em; font-weight: 500; vertical-align: super; line-height: 0; color: var(--cyan); text-decoration: none; margin-left: 1px; }
 a.c:hover { text-decoration: underline; }
 
@@ -466,10 +468,10 @@ main { position: relative; z-index: 1; }
 .check input:checked { background: var(--ok); border-color: var(--ok); }
 .check input:checked::after { content: ""; width: 9px; height: 5px; border: 2px solid var(--void); border-top: 0; border-right: 0; transform: rotate(-45deg) translate(1px, -1px); }
 .check input:checked + span { color: var(--ink); text-decoration: line-through; text-decoration-color: var(--ok); }
-.refs { display: grid; gap: 12px; counter-reset: r; }
-.refs li { display: grid; grid-template-columns: 44px minmax(0, 1fr); font-size: .86rem; color: var(--ink-2); line-height: 1.55; scroll-margin-top: 120px; }
-.refs li::before { content: "[" attr(data-n) "]"; font-family: var(--f-mono); font-size: .74rem; color: var(--cyan); padding-top: 2px; }
-.refs li:target { color: var(--ink); }
+.refs { columns: 2 420px; column-gap: 48px; }
+.refs li { break-inside: avoid; padding-left: 2em; text-indent: -2em; font-size: .84rem; color: var(--ink-2); line-height: 1.55; scroll-margin-top: 120px; margin-bottom: 12px; transition: color .3s, background .3s; }
+.refs li:target { color: var(--ink); background: var(--cyan-dim); }
+.refs-group { font-family: var(--f-mono); font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--cyan); margin: 34px 0 14px; }
 .refs a { overflow-wrap: anywhere; color: var(--ink-3); }
 .refs i { font-style: italic; }
 .foot { position: relative; z-index: 1; border-top: 1px solid var(--line); padding-block: 28px calc(env(safe-area-inset-bottom, 0px) + 36px); font-family: var(--f-mono); font-size: .72rem; color: var(--ink-3); letter-spacing: .04em; }

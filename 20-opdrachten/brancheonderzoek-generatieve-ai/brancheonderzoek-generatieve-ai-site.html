@@ -204,7 +204,7 @@ main { position: relative; z-index: 1; }
 .tl-year { font-family: var(--f-display); font-weight: 700; font-size: clamp(3rem, 9vw, 7rem); line-height: .8; color: transparent; -webkit-text-stroke: 1px var(--cyan); font-variant-numeric: tabular-nums; }
 .tl-view { overflow-x: auto; overscroll-behavior-x: contain; }
 .js-pin .tl-view { overflow: visible; }
-.tl-track { display: flex; gap: 22px; width: max-content; padding-left: var(--gl); padding-right: 20vw; padding-block: 34px 8px; position: relative; will-change: transform; }
+.tl-track { display: flex; gap: 22px; width: max-content; padding-left: max(var(--gl), calc((100vw - 1220px) / 2 + 16px)); padding-right: 24vw; padding-block: 34px 8px; position: relative; will-change: transform; }
 .tl-track::before { content: ""; position: absolute; left: 0; right: 0; top: 12px; height: 1px; background: var(--line-2); }
 .ev { position: relative; width: min(76vw, 320px); flex: none; display: grid; gap: 10px; align-content: start; }
 .ev::before { content: ""; position: absolute; top: -27px; left: 0; width: 11px; height: 11px; border: 2px solid var(--cyan); background: var(--void); transform: rotate(45deg); }
@@ -703,7 +703,8 @@ main { position: relative; z-index: 1; }
   document.querySelectorAll('[data-count]').forEach(out => {
     const src = document.querySelector(out.dataset.count);
     if (!src) return;
-    const n = (src.innerText.replace(/\[\d+(,\s*\d+)*\]/g, '').match(/[\p{L}\p{N}][\p{L}\p{N}'’\-.,%€]*/gu) || []).length;
+    const parts = src.matches('p') ? [src] : [...src.querySelectorAll('p')];
+    const n = parts.reduce((t, el) => t + (el.textContent.trim().split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w)).length), 0);
     out.textContent = n + ' woorden';
   });
 

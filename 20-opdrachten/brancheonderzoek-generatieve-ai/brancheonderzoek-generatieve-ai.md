@@ -105,3 +105,4 @@ Brancheonderzoek naar Jorts specialisatie **Digital Business & Generative AI**, 
 - 2026-10-29: opdracht aangemaakt; Jort vroeg om een presentatiewebsite (test) met scrollgevoel zoals intothewoods.nl/ade, in een futuristische ICT/AI-stijl, los van de speelhal-site.
 - 2026-10-29: voorbeeldbedrijf voor lesweek 7 en 9 is **OpenAI** (keuze van het brein, Jort kan dit nog wijzigen).
 - 2026-10-29: onderzoek (7 bronnotities), eindproduct en presentatiewebsite gemaakt. Ontwerp op verzoek van Jort: ICT/AI/computer-achtig met een futuristische achtergrond.
+- 2026-11-10: lesweek 9 apart uitgewerkt en verdiept in [[stakeholderanalyse-openai]] (vier vragen per stakeholder, onderlinge verhoudingen, poster). Die versie is leidend voor het portfolio.

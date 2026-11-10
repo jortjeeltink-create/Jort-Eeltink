@@ -2,7 +2,7 @@
 type: portfolio
 tags: [opdracht, portfolio]
 aangemaakt: 2026-10-06
-bijgewerkt: 2026-10-29
+bijgewerkt: 2026-11-10
 ---
 # Portfolio
 
@@ -40,6 +40,7 @@ _Nog geen opdrachten._
 | Opdracht | Deadline | Status | Ingeleverd |
 |---|---|---|---|
 | [[brancheonderzoek-generatieve-ai\|Brancheonderzoek Digital Business & Generative AI]] (LW1–11 + eindpresentatie, [website](https://claude.ai/artifact/9b5v8w6vxURbcdt1nVLmhq)) | zondag week 12, 23.59 (Blackboard), datum nog onbekend #vraag | uitgewerkt; foto's, podcast, vlog en reflectie nog door Jort | |
+| [[stakeholderanalyse-openai\|Stakeholderanalyse OpenAI]] (LW9, simpele poster als afbeelding; reserve: [presentatie](https://claude.ai/artifact/D7MKeNXAdbMaquVEyPAxfP)) | lesweek 10 (datum onbekend) | poster klaar; nog presenteren | |
 
 ### [[marketing]]
 | Opdracht | Deadline | Status | Ingeleverd |

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Stakeholders van OpenAI</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&amp;display=swap">
+<style>
+:root{
+  /* Simpele poster, 1920×1080: titel, de matrix als hoofdzaak, één voorbeeld rechts. */
+  --bg:#F5F3EF; --ink:#14171F; --mute:#5A6170; --line:#D6D1C8;
+  --samen:#F26B21; --samen-bg:#FDE1CF;
+  --tevreden:#2F6FE0; --tevreden-bg:#DCE7FB;
+  --info:#B86A35; --info-bg:#F7EADF;
+  --monitor:#5B6680; --monitor-bg:#E8E9EE;
+  --f-display:"Bricolage Grotesque","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Instrument Sans","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg)}
+.poster{width:1920px;height:1080px;padding:56px 72px 44px;display:grid;grid-template-columns:1fr 520px;grid-template-rows:auto 1fr auto;gap:28px 48px;color:var(--ink);font-family:var(--f-body);background:var(--bg)}
+header{grid-column:1 / -1;display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid var(--ink);padding-bottom:20px}
+h1{margin:0;font:800 84px/.95 var(--f-display);letter-spacing:-.035em}
+h1 span{color:var(--samen)}
+header p{margin:10px 0 0;font:500 28px/1.3 var(--f-body);color:var(--mute)}
+.who{text-align:right;font:500 20px/1.5 var(--f-body);color:var(--mute)}
+.who b{color:var(--ink);font-weight:650}
+
+.matrix{position:relative;margin-left:52px;margin-bottom:40px;display:grid;grid-template-columns:1fr 1.3fr;grid-template-rows:1.45fr 1fr;gap:12px}
+.q{border-radius:18px;padding:22px 26px;display:flex;flex-direction:column;gap:10px}
+.q h2{margin:0;font:800 36px/1 var(--f-display);letter-spacing:-.02em;color:var(--c)}
+.q small{font:600 16px/1 var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.q ul{margin:6px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px}
+.q li{font:400 23px/1.25 var(--f-body)}
+.q li b{font-weight:700}
+.samen{--c:var(--samen);background:var(--samen-bg)}
+.tevreden{--c:var(--tevreden);background:var(--tevreden-bg)}
+.info{--c:var(--info);background:var(--info-bg)}
+.monitor{--c:var(--monitor);background:var(--monitor-bg)}
+.ax{position:absolute;font:700 20px/1 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);white-space:nowrap}
+.ax.y{left:-30px;top:50%;transform:translate(-50%,-50%) rotate(-90deg)}
+.ax.x{left:50%;bottom:-34px;transform:translateX(-50%)}
+
+aside{display:flex;flex-direction:column;gap:22px}
+.box{border-radius:18px;padding:26px 28px;background:#fff;border:2px solid var(--line)}
+.box h3{margin:0 0 12px;font:800 32px/1.05 var(--f-display);letter-spacing:-.015em}
+.box p{margin:0;font:400 23px/1.4 var(--f-body)}
+.box ol{margin:0;padding-left:26px;display:flex;flex-direction:column;gap:8px;font:400 23px/1.35 var(--f-body)}
+.dark{background:var(--ink);border-color:var(--ink);color:#F5F3EF}
+.dark h3{color:var(--samen)}
+.les{margin-top:14px!important;font-weight:650!important}
+
+footer{grid-column:1 / -1;font:400 14px/1.45 var(--f-body);color:var(--mute);border-top:1px solid var(--line);padding-top:12px}
+footer b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="poster" id="poster">
+  <header>
+    <div>
+      <h1>Stakeholders van <span>OpenAI</span></h1>
+      <p>Wie heeft invloed op het bedrijf achter ChatGPT?</p>
+    </div>
+    <div class="who"><b>Jort Eeltink</b> · Business Management, jaar 1 · TIO<br>Mapping the Business · lesweek 9 · Digital Business &amp; Generative AI</div>
+  </header>
+
+  <div class="matrix">
+    <section class="q tevreden">
+      <small>Veel macht · weinig belang</small>
+      <h2>Tevreden houden</h2>
+      <ul>
+        <li><b>Europese Unie</b>: maakt de regels en kan hoge boetes geven</li>
+      </ul>
+    </section>
+    <section class="q samen">
+      <small>Veel macht · veel belang</small>
+      <h2>Samenwerken</h2>
+      <ul>
+        <li><b>Bestuur</b> (OpenAI Foundation): kiest de baas</li>
+        <li><b>Microsoft</b>: bezit ongeveer een kwart en levert de cloud</li>
+        <li><b>Medewerkers</b>: zij bouwen ChatGPT</li>
+        <li><b>Nvidia</b>: maakt de chips die AI nodig heeft</li>
+        <li><b>Investeerders</b> (SoftBank, Amazon): geven geld, want OpenAI maakt nog verlies</li>
+        <li><b>Bedrijven</b>: betalen ruim 40% van wat OpenAI verdient</li>
+      </ul>
+    </section>
+    <section class="q monitor">
+      <small>Weinig macht · weinig belang</small>
+      <h2>Monitoren</h2>
+      <ul>
+        <li><b>Concurrenten</b> (Google, Anthropic): maken eigen chatbots</li>
+      </ul>
+    </section>
+    <section class="q info">
+      <small>Weinig macht · veel belang</small>
+      <h2>Informeren</h2>
+      <ul>
+        <li><b>Gebruikers</b>: 1,2 miljard per week, alleen samen sterk</li>
+        <li><b>Kranten en artiesten</b>: willen geld als AI hun werk gebruikt</li>
+      </ul>
+    </section>
+    <span class="ax y">Macht →</span>
+    <span class="ax x">Belang →</span>
+  </div>
+
+  <aside>
+    <div class="box">
+      <h3>Wat doe je per vak?</h3>
+      <ol>
+        <li><b>Samenwerken</b>: bij grote keuzes betrekken</li>
+        <li><b>Tevreden houden</b>: regels netjes volgen</li>
+        <li><b>Informeren</b>: goed uitleggen wat er verandert</li>
+        <li><b>Monitoren</b>: in de gaten houden</li>
+      </ol>
+    </div>
+    <div class="box dark">
+      <h3>Voorbeeld: november 2023</h3>
+      <p>Het bestuur ontslaat de baas, Sam Altman. Microsoft neemt hem aan. Ruim 700 van de ongeveer 770 medewerkers dreigen mee te gaan. Na vijf dagen is Altman terug, met een nieuw bestuur.</p>
+      <p class="les">Les: de belangrijkste stakeholders moeten samenwerken. Anders loopt het bedrijf vast.</p>
+    </div>
+  </aside>
+
+  <footer><b>Bronnen:</b> Bonifacic et al. (2026); Claburn (2025); Dignan (2025); EU Artificial Intelligence Act (z.d.); Freeman (1984); Mendelow (1981); Méndez &amp; Hu (2026); O’Brien (2023); Quartz Staff (2026); Vance et al. (2023); Zohar Basteker (2026). Volledige APA-lijst in het portfolio.</footer>
+</div>
+</body>
+</html>

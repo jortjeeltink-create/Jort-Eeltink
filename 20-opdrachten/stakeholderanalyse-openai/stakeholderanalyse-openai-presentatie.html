@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wie bepaalt de koers van OpenAI?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400..600&amp;display=swap">
+<style>
+:root{
+  /* Plan: een vast podium van 1920×1080 dat meeschaalt met elk scherm (zoals PowerPoint).
+     Tien genummerde stakeholder-bolletjes blijven over alle dia's staan en schuiven naar hun nieuwe plek (morph).
+     Kleur = plek in de matrix: oranje = hoog belang, blauw = laag belang; fel = veel macht, licht = weinig macht. */
+  --ink:#0C1018;
+  --ink-2:#131A26;
+  --ink-3:#1B2333;
+  --line:#2A3448;
+  --paper:#EDF0F5;
+  --mute:#98A4B9;
+  --hot:#FF7A2F;   /* veel macht + hoog belang: samenwerken */
+  --warm:#F5B48C;  /* weinig macht + hoog belang: informeren */
+  --cold:#4C8DFF;  /* veel macht + laag belang: tevreden houden */
+  --pale:#8D99B2;  /* weinig macht + laag belang: monitoren */
+  --f-display:"Bricolage Grotesque","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Instrument Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"Geist Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --ease:cubic-bezier(.7,0,.2,1);
+  --k:1;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--ink);color:var(--paper);font-family:var(--f-body);overflow:hidden;-webkit-font-smoothing:antialiased;user-select:none}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--hot);outline-offset:3px}
+
+/* ---------- podium ---------- */
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform:translate(-50%,-50%) scale(var(--k));overflow:hidden;background:var(--ink);isolation:isolate}
+.bg-grid{position:absolute;inset:0;z-index:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:96px 96px;background-position:-1px -1px;opacity:.28;mask-image:radial-gradient(ellipse 80% 75% at 50% 45%,#000 30%,transparent 100%)}
+.bg-glow{position:absolute;width:1500px;height:1500px;left:0;top:0;z-index:0;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--hot) 26%,transparent) 0%,color-mix(in srgb,var(--cold) 10%,transparent) 38%,transparent 66%);transform:translate(calc(var(--gx,1400px) - 750px),calc(var(--gy,250px) - 750px));transition:transform 1.6s var(--ease);filter:blur(10px)}
+.bg-grain{position:absolute;inset:0;z-index:0;opacity:.07;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+.slide{position:absolute;inset:0;z-index:2;padding:100px 128px 150px;display:flex;flex-direction:column;gap:36px;visibility:hidden;opacity:0}
+.slide.on{visibility:visible;opacity:1}
+.slide.leaving{visibility:visible;opacity:1;z-index:1}
+.notes{display:none}
+
+/* ---------- typografie ---------- */
+.eyebrow{display:flex;align-items:center;gap:14px;font:500 20px/1 var(--f-mono);letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin:0}
+.eyebrow b{color:var(--hot);font-weight:600}
+.eyebrow i{flex:0 0 56px;height:1px;background:var(--line)}
+.title{font:700 76px/1.02 var(--f-display);letter-spacing:-.025em;margin:16px 0 0;text-wrap:balance;max-width:1560px}
+.title.sm{font-size:64px}
+.acc{color:var(--hot)}
+.lede{font:400 30px/1.4 var(--f-body);color:var(--mute);margin:0;max-width:62ch;text-wrap:pretty}
+.src{position:absolute;left:128px;right:420px;bottom:52px;margin:0;font:400 16px/1.45 var(--f-mono);color:var(--mute);opacity:.85}
+.split .w{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.14em;margin-bottom:-.14em}
+.split .w>span{display:inline-block}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- binnenkomen: gestaffeld ---------- */
+.slide.play [data-a]{animation:rise .9s cubic-bezier(.2,.75,.2,1) both;animation-delay:calc(var(--i,0) * 85ms + 140ms)}
+.slide.play .split .w>span{animation:wordup .95s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--wi) * 55ms + 60ms)}
+@keyframes rise{from{opacity:0;transform:translateY(38px);filter:blur(7px)}to{opacity:1;transform:none;filter:none}}
+@keyframes wordup{from{transform:translateY(108%)}to{transform:none}}
+
+/* opbouw per klik */
+[data-step]{transition:opacity .55s ease,transform .55s cubic-bezier(.2,.75,.2,1),filter .55s ease}
+[data-step]:not(.shown){opacity:0;transform:translateY(18px);filter:blur(5px)}
+svg [data-step]:not(.shown){transform:none}
+
+/* ---------- de cast: tien bolletjes ---------- */
+.cast{position:absolute;inset:0;z-index:6;pointer-events:none}
+.node{position:absolute;left:0;top:0;--s:44px;--x:960px;--y:540px;transform:translate(var(--x),var(--y));opacity:0;transition:transform 1s var(--ease) var(--dl,0ms),opacity .45s ease var(--dl,0ms)}
+.node.vis{opacity:1}
+.node[data-q="samen"]{--c:var(--hot)}
+.node[data-q="tevreden"]{--c:var(--cold)}
+.node[data-q="info"]{--c:var(--warm)}
+.node[data-q="monitor"]{--c:var(--pale)}
+.wob{position:absolute;left:0;top:0}
+.dot{position:absolute;width:var(--s);height:var(--s);left:calc(var(--s) / -2);top:calc(var(--s) / -2);border-radius:50%;background:var(--c);color:#0C1018;display:grid;place-items:center;font:600 calc(var(--s) * .4)/1 var(--f-mono);box-shadow:0 0 0 calc(var(--s) * .14) color-mix(in srgb,var(--c) 20%,transparent),0 0 calc(var(--s) * .9) color-mix(in srgb,var(--c) 45%,transparent);transition:width 1s var(--ease) var(--dl,0ms),height 1s var(--ease) var(--dl,0ms),left 1s var(--ease) var(--dl,0ms),top 1s var(--ease) var(--dl,0ms),font-size 1s var(--ease) var(--dl,0ms)}
+.lbl{position:absolute;white-space:nowrap;font:600 var(--lf,22px)/1.1 var(--f-body);color:var(--paper);opacity:0;transition:opacity .4s ease;text-shadow:0 1px 10px var(--ink),0 0 2px var(--ink)}
+.node.vis[data-lp="r"] .lbl,.node.vis[data-lp="l"] .lbl,.node.vis[data-lp="t"] .lbl,.node.vis[data-lp="b"] .lbl{opacity:1;transition-delay:.55s}
+.node[data-lp="r"] .lbl{left:calc(var(--s) / 2 + 12px);top:0;transform:translateY(-50%)}
+.node[data-lp="l"] .lbl{right:calc(var(--s) / 2 + 12px);top:0;transform:translateY(-50%)}
+.node[data-lp="t"] .lbl{left:0;bottom:calc(var(--s) / 2 + 10px);transform:translateX(-50%)}
+.node[data-lp="b"] .lbl{left:0;top:calc(var(--s) / 2 + 10px);transform:translateX(-50%)}
+.cast[data-mode="float"] .wob{animation:drift 9s ease-in-out infinite alternate;animation-delay:var(--dd)}
+@keyframes drift{0%{transform:translate(0,0)}33%{transform:translate(14px,-18px)}66%{transform:translate(-12px,10px)}100%{transform:translate(8px,16px)}}
+.anchor{display:inline-block;flex:0 0 auto;width:44px;height:44px;border-radius:50%}
+
+/* ---------- vaste elementen op het podium ---------- */
+.hud{position:absolute;z-index:8;font:500 16px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.hud-brand{left:128px;top:44px;display:flex;gap:12px;align-items:center}
+.hud-brand::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--hot);box-shadow:0 0 14px var(--hot)}
+.hud-count{right:128px;bottom:52px;font-size:18px}
+.hud-count b{color:var(--paper);font-weight:600}
+.hud-timer{right:128px;top:44px;opacity:.0;transition:opacity .3s}
+.hud-timer.run,.hud-timer.paused{opacity:1}
+.hud-timer.paused{color:var(--warm)}
+.progress{position:absolute;left:0;bottom:0;height:5px;width:100%;z-index:8;background:color-mix(in srgb,var(--line) 60%,transparent)}
+.progress i{display:block;height:100%;width:var(--p,0%);background:linear-gradient(90deg,var(--cold),var(--hot));transition:width .8s var(--ease)}
+.wipe{position:absolute;inset:0;z-index:20;background:var(--hot);color:#0C1018;display:flex;flex-direction:column;justify-content:center;padding:0 128px;clip-path:inset(0 100% 0 0);pointer-events:none}
+.wipe small{font:600 24px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;opacity:.75}
+.wipe span{font:800 190px/.95 var(--f-display);letter-spacing:-.045em;margin-top:18px}
+.hint{position:absolute;z-index:9;left:50%;bottom:92px;transform:translateX(-50%);font:500 18px/1 var(--f-mono);color:var(--mute);letter-spacing:.06em;padding:14px 22px;border:1px solid var(--line);border-radius:99px;background:color-mix(in srgb,var(--ink) 80%,transparent);transition:opacity .6s}
+.hint kbd,.help kbd{font:600 16px/1 var(--f-mono);padding:5px 8px;border:1px solid var(--line);border-bottom-width:3px;border-radius:7px;color:var(--paper);background:var(--ink-2)}
+.hint.gone{opacity:0}
+
+/* ---------- 1 cover ---------- */
+.s-cover{justify-content:center;gap:34px}
+.cover-title{font:800 148px/.94 var(--f-display);letter-spacing:-.04em;margin:0;max-width:1160px;text-wrap:balance}
+.cover-sub{font:400 34px/1.3 var(--f-body);color:var(--mute);margin:0;max-width:860px}
+.cover-meta{display:flex;gap:28px;flex-wrap:wrap;font:500 19px/1.5 var(--f-mono);color:var(--mute);letter-spacing:.03em;margin:8px 0 0}
+.cover-meta span+span::before{content:"/";margin-right:28px;color:var(--line)}
+.orbit{position:absolute;right:-180px;top:50%;width:1100px;height:1100px;transform:translateY(-50%);pointer-events:none}
+.orbit circle{fill:none;stroke:var(--line);stroke-width:1.2}
+.orbit .o2{stroke-dasharray:3 10;animation:spin 120s linear infinite;transform-origin:550px 550px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.float-a{position:absolute}
+
+/* ---------- 2 bedrijf ---------- */
+.s-company .grid{display:grid;grid-template-columns:1fr 780px;gap:80px;flex:1;align-items:center}
+.struct{display:flex;flex-direction:column;gap:0;margin-top:34px}
+.box{display:flex;align-items:center;gap:18px;padding:20px 24px;border:1px solid var(--line);border-radius:18px;background:var(--ink-2)}
+.box h4{margin:0;font:600 30px/1.15 var(--f-body)}
+.box p{margin:4px 0 0;font:400 20px/1.3 var(--f-body);color:var(--mute)}
+.box .pct{margin-left:auto;font:600 30px/1 var(--f-mono);color:var(--paper)}
+.box.core{background:var(--ink-3);border-color:color-mix(in srgb,var(--hot) 45%,var(--line))}
+.link{display:flex;align-items:center;gap:14px;height:62px;padding-left:46px;font:500 18px/1 var(--f-mono);color:var(--mute);letter-spacing:.04em}
+.link::before{content:"";width:2px;height:100%;background:linear-gradient(var(--hot),var(--line))}
+.owners{display:grid;grid-template-columns:1fr 1.3fr;gap:16px}
+.owners .box{flex-direction:column;align-items:flex-start;gap:10px}
+.owners .row{display:flex;gap:10px;align-items:center}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.stat{padding:30px 32px 32px;border-radius:22px;background:var(--ink-2);border:1px solid var(--line);display:flex;flex-direction:column;gap:12px;min-height:250px;justify-content:flex-end}
+.stat b{font:700 64px/1 var(--f-display);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.stat span{font:400 24px/1.3 var(--f-body);color:var(--mute)}
+.stat.hl{background:linear-gradient(150deg,color-mix(in srgb,var(--hot) 22%,var(--ink-2)),var(--ink-2) 70%);border-color:color-mix(in srgb,var(--hot) 40%,var(--line))}
+.why{margin-top:22px;font:400 24px/1.4 var(--f-body);color:var(--mute);max-width:60ch}
+.why strong{color:var(--paper);font-weight:600}
+
+/* ---------- 3 theorie ---------- */
+.def{font:600 64px/1.1 var(--f-display);letter-spacing:-.015em;margin:0;max-width:1400px;text-wrap:balance}
+.def cite{display:block;font:500 19px/1.45 var(--f-mono);font-style:normal;color:var(--mute);margin-top:20px;letter-spacing:.02em;max-width:1300px}
+.ie{display:grid;grid-template-columns:520px 1fr;gap:28px;margin-top:6px}
+.panel{border:1px solid var(--line);border-radius:22px;background:var(--ink-2);padding:28px 32px}
+.panel h3{margin:0 0 18px;font:600 20px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+.panel h3 b{color:var(--paper)}
+.who{list-style:none;margin:0;padding:0;display:grid;gap:14px 26px}
+.who li{display:flex;align-items:center;gap:16px;font:500 28px/1.2 var(--f-body)}
+.who.cols{grid-template-columns:1fr 1fr}
+.aside-note{font:400 24px/1.45 var(--f-body);color:var(--mute);margin:0;max-width:70ch}
+.aside-note strong{color:var(--paper)}
+
+/* ---------- 4 model ---------- */
+.s-model .grid{display:grid;grid-template-columns:900px 1fr;gap:80px;flex:1;align-items:center}
+.m2{position:relative;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:14px;width:820px;height:600px;margin-left:70px}
+.q{border-radius:22px;padding:26px 28px;display:flex;flex-direction:column;gap:12px;border:1px solid var(--line)}
+.q h4{margin:0;font:700 36px/1.05 var(--f-display);letter-spacing:-.015em}
+.q p{margin:0;font:500 27px/1.3 var(--f-body);color:var(--paper);opacity:.9}
+.q small{font:500 16px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;opacity:.75}
+.q.samen{background:color-mix(in srgb,var(--hot) 24%,var(--ink-2));border-color:color-mix(in srgb,var(--hot) 55%,var(--line))}
+.q.samen h4{color:var(--hot)}
+.q.tevreden{background:color-mix(in srgb,var(--cold) 20%,var(--ink-2));border-color:color-mix(in srgb,var(--cold) 50%,var(--line))}
+.q.tevreden h4{color:var(--cold)}
+.q.info{background:color-mix(in srgb,var(--warm) 10%,var(--ink-2))}
+.q.info h4{color:var(--warm)}
+.q.monitor{background:color-mix(in srgb,var(--pale) 8%,var(--ink-2))}
+.q.monitor h4{color:var(--pale)}
+.axis-y{position:absolute;left:-70px;top:0;bottom:0;width:40px;display:flex;align-items:center;justify-content:center}
+.axis-y span,.axis-x span{font:600 18px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);white-space:nowrap}
+.axis-y span{transform:rotate(-90deg)}
+.axis-y::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:2px;background:linear-gradient(var(--paper),transparent);opacity:.25}
+.axis-x{position:absolute;left:0;right:0;bottom:-52px;display:flex;justify-content:center}
+.legend{display:flex;flex-direction:column;gap:22px}
+.legend h3{margin:0;font:600 34px/1.15 var(--f-display)}
+.sw{display:grid;grid-template-columns:auto auto;gap:14px 30px;justify-content:start}
+.sw div{display:flex;align-items:center;gap:14px;font:500 22px/1.2 var(--f-body)}
+.sw i{width:30px;height:30px;border-radius:50%;flex:0 0 30px}
+.legend p{margin:0;font:400 23px/1.45 var(--f-body);color:var(--mute);max-width:44ch}
+.legend p strong{color:var(--paper)}
+
+/* ---------- 5 de tien ---------- */
+.ten{display:grid;grid-template-columns:repeat(5,1fr);gap:20px;margin-top:8px}
+.tcard{border:1px solid var(--line);border-radius:22px;background:var(--ink-2);padding:26px 26px 24px;display:flex;flex-direction:column;gap:12px;min-height:318px;position:relative;overflow:hidden}
+.tcard::after{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:var(--qc)}
+.tcard h4{margin:8px 0 0;font:650 30px/1.12 var(--f-body)}
+.tcard p{margin:0;font:400 22px/1.3 var(--f-body);color:var(--mute)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
+.chip{font:500 15px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;padding:7px 10px;border-radius:99px;border:1px solid var(--line);color:var(--mute)}
+.chip.q-chip{border-color:transparent;background:color-mix(in srgb,var(--qc) 22%,transparent);color:var(--paper)}
+[data-qc="samen"]{--qc:var(--hot)}
+[data-qc="tevreden"]{--qc:var(--cold)}
+[data-qc="info"]{--qc:var(--warm)}
+[data-qc="monitor"]{--qc:var(--pale)}
+
+/* ---------- 6-9 verdieping ---------- */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;flex:1;align-items:stretch}
+.cards.two{grid-template-columns:1fr 1fr}
+.card{border:1px solid var(--line);border-radius:24px;background:var(--ink-2);padding:26px 28px 28px;display:flex;flex-direction:column;gap:18px;position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;inset:0 0 auto 0;height:5px;background:var(--qc)}
+.card header{display:flex;align-items:center;gap:18px}
+.card header h3{margin:0;font:700 34px/1.05 var(--f-display);letter-spacing:-.01em}
+.card header p{margin:5px 0 0;font:500 16px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.card dl{margin:0;display:flex;flex-direction:column;gap:15px}
+.card dt{font:600 17px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--qc);margin-bottom:10px}
+.card dd{margin:0;font:500 31px/1.22 var(--f-body);color:var(--paper);text-wrap:balance}
+.cards.two .card dd{font-size:36px}
+.card dl{flex:1;justify-content:space-around}
+.card dd strong{font-weight:650}
+.meter{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.meter i{flex:1;height:8px;border-radius:9px;background:var(--line);overflow:hidden}
+.meter i b{display:block;height:100%;width:calc(var(--v) * 1%);background:var(--qc);border-radius:9px;transform-origin:left;transition:transform 1.1s var(--ease)}
+.slide:not(.play) .meter i b{transform:scaleX(0)}
+.meter span{font:600 17px/1 var(--f-mono);color:var(--mute);min-width:118px;text-align:right}
+
+/* ---------- 10 matrix ---------- */
+.s-matrix{flex-direction:row;gap:0;padding:0}
+.mx-left{position:relative;width:1080px;height:100%}
+.mx-head{position:absolute;left:128px;top:100px}
+.plot{position:absolute;left:250px;top:236px;width:720px;height:720px;border-radius:20px;overflow:visible}
+.qbg{position:absolute;width:50%;height:50%;border:1px solid var(--line)}
+.qbg b{position:absolute;font:700 26px/1 var(--f-display);letter-spacing:-.01em;padding:18px 20px}
+.qbg.samen{right:0;top:0;border-radius:0 20px 0 0;background:color-mix(in srgb,var(--hot) 13%,transparent)}
+.qbg.samen b{left:0;bottom:0;color:var(--hot)}
+.qbg.tevreden{left:0;top:0;border-radius:20px 0 0 0;background:color-mix(in srgb,var(--cold) 11%,transparent)}
+.qbg.tevreden b{left:0;top:0;color:var(--cold)}
+.qbg.info{right:0;bottom:0;border-radius:0 0 20px 0;background:color-mix(in srgb,var(--warm) 6%,transparent)}
+.qbg.info b{right:0;bottom:0;color:var(--warm)}
+.qbg.monitor{left:0;bottom:0;border-radius:0 0 0 20px;background:color-mix(in srgb,var(--pale) 5%,transparent)}
+.qbg.monitor b{left:0;bottom:0;color:var(--pale)}
+.ax{position:absolute;font:600 17px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);white-space:nowrap}
+.ax.y{left:-56px;top:50%;transform:translate(-50%,-50%) rotate(-90deg)}
+.ax.x{left:50%;bottom:-44px;transform:translateX(-50%)}
+.plot .tick{position:absolute;font:500 15px/1 var(--f-mono);color:var(--mute);opacity:.8}
+.plot .anchor{position:absolute}
+.mx-right{flex:1;padding:120px 128px 150px 20px;display:flex;flex-direction:column;justify-content:center;gap:30px}
+.grp{border-left:4px solid var(--qc);padding:6px 0 6px 22px}
+.grp h4{margin:0 0 8px;font:700 28px/1 var(--f-display);color:var(--qc)}
+.grp ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+.grp li{font:400 25px/1.3 var(--f-body);color:var(--paper)}
+.grp li b{font:600 19px/1 var(--f-mono);color:var(--mute);display:inline-block;min-width:34px}
+.grp li strong{font-weight:650}
+
+/* ---------- 11 netwerk ---------- */
+.s-net .head{position:relative;z-index:3}
+.edges{position:absolute;inset:0;z-index:1;overflow:visible}
+.edges path{fill:none;stroke-width:3;stroke-linecap:round}
+.edges .samen{stroke:var(--paper);opacity:.75;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1.2s var(--ease),opacity .4s}
+.edges .samen.shown{stroke-dashoffset:0}
+.edges .samen:not(.shown){opacity:0}
+.edges .botst{stroke:var(--cold);stroke-dasharray:10 12;opacity:0;transition:opacity .6s}
+.edges .botst.shown{opacity:1;animation:march 1.2s linear infinite}
+@keyframes march{to{stroke-dashoffset:-44}}
+.elabel{position:absolute;z-index:2;transform:translate(-50%,-50%);font:500 17px/1.2 var(--f-mono);padding:7px 12px;border-radius:10px;background:var(--ink);border:1px solid var(--line);color:var(--paper);white-space:nowrap}
+.elabel.botst{border-color:color-mix(in srgb,var(--cold) 60%,var(--line));color:#CFE0FF}
+.hub{position:absolute;z-index:2;width:136px;height:136px;margin:-68px 0 0 -68px;border-radius:50%;display:grid;place-items:center;background:var(--paper);color:var(--ink);font:800 28px/1 var(--f-display);letter-spacing:-.02em;box-shadow:0 0 0 14px color-mix(in srgb,var(--paper) 10%,transparent),0 0 80px color-mix(in srgb,var(--paper) 25%,transparent)}
+.s-net .anchor{position:absolute}
+.netlegend{display:flex;gap:34px;margin-top:20px;font:500 19px/1 var(--f-mono);color:var(--mute);letter-spacing:.03em}
+.netlegend span{display:flex;align-items:center;gap:12px}
+.netlegend i{width:56px;height:0;border-top:3px solid var(--paper)}
+.netlegend i.d{border-top:3px dashed var(--cold)}
+
+/* ---------- 12 november 2023 ---------- */
+.days{display:grid;grid-template-columns:repeat(4,1fr);gap:30px;margin-top:40px;position:relative}
+.days::before{content:"";position:absolute;left:0;right:0;top:27px;height:2px;background:linear-gradient(90deg,var(--hot),var(--cold))}
+.day{display:flex;flex-direction:column;gap:20px;position:relative}
+.day .pin{width:16px;height:16px;border-radius:50%;background:var(--paper);margin:20px 0 6px;box-shadow:0 0 0 7px var(--ink),0 0 0 8px var(--line)}
+.day time{font:800 96px/.9 var(--f-display);letter-spacing:-.04em;color:var(--hot)}
+.day h4{margin:0;font:700 48px/1.04 var(--f-display);letter-spacing:-.02em;text-wrap:balance}
+.day p{margin:0;font:400 25px/1.4 var(--f-body);color:var(--mute)}
+.day p q{color:var(--paper);font-style:italic}
+.day .who-chips{display:flex;gap:8px;flex-wrap:wrap}
+.lesson{margin-top:auto;display:grid;grid-template-columns:auto 1fr;gap:26px;align-items:center;padding:28px 34px;border-radius:24px;background:linear-gradient(120deg,color-mix(in srgb,var(--hot) 22%,var(--ink-2)),var(--ink-2) 65%);border:1px solid color-mix(in srgb,var(--hot) 40%,var(--line))}
+.lesson b{font:600 18px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--hot)}
+.lesson p{margin:0;font:600 38px/1.25 var(--f-display);letter-spacing:-.01em}
+
+/* ---------- 13 conclusie ---------- */
+.s-concl .grid{display:grid;grid-template-columns:1fr 600px;gap:70px;flex:1}
+.take{list-style:none;margin:30px 0 0;padding:0;display:flex;flex-direction:column;gap:56px;counter-reset:t}
+.take li{display:grid;grid-template-columns:76px 1fr;gap:20px;align-items:start;counter-increment:t}
+.take li::before{content:counter(t,decimal-leading-zero);font:700 56px/1 var(--f-display);color:var(--hot)}
+.take h4{margin:4px 0 0;font:700 54px/1.06 var(--f-display);letter-spacing:-.02em;max-width:16ch;text-wrap:balance}
+.take p{margin:0;font:400 27px/1.4 var(--f-body);color:var(--mute);max-width:52ch}
+.mini{position:relative;width:540px;height:540px;margin:30px 0 0 70px}
+.mini .qbg b{font-size:20px;padding:12px 14px}
+.mini .ax.y{left:-40px}
+.mini .ax.x{bottom:-38px}
+.mini .ax{font-size:14px}
+.shift{position:absolute;inset:0;overflow:visible;z-index:7;pointer-events:none}
+.shift path{fill:none;stroke:var(--paper);stroke-width:3;stroke-dasharray:6 8;marker-end:url(#arw)}
+.shift text{font:600 16px var(--f-mono);fill:var(--paper);paint-order:stroke;stroke:#0C1018;stroke-width:5px}
+
+/* ---------- 14 poster ---------- */
+.s-poster{flex-direction:row;align-items:center;gap:90px;padding:60px 128px 90px}
+.poster-hold{position:relative;width:760px;height:1075px;flex:0 0 760px;transform:scale(.86);transform-origin:left center;transition:transform .8s var(--ease)}
+.s-poster.zoom .poster-hold{transform:scale(2.1);transform-origin:var(--zx,50%) var(--zy,20%)}
+.s-poster.zoom .ptext{opacity:0}
+.ptext{display:flex;flex-direction:column;gap:24px;transition:opacity .4s}
+.ptext .title{font-size:84px}
+.ptext p{margin:0;font:400 27px/1.42 var(--f-body);color:var(--mute);max-width:36ch}
+.ptext .ask{font:800 120px/.9 var(--f-display);letter-spacing:-.04em;color:var(--hot);margin-top:20px}
+.ptext .tip{font:500 18px/1.5 var(--f-mono);color:var(--mute);letter-spacing:.03em}
+
+.poster{position:absolute;inset:0;background:#F3F0EA;color:#11141B;border-radius:6px;overflow:hidden;padding:30px 36px 22px;display:flex;flex-direction:column;gap:12px;box-shadow:0 40px 120px rgba(0,0,0,.55);font-family:var(--f-body)}
+.poster .p-eye{margin:0;font:600 10.5px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:#5B6372;display:flex;justify-content:space-between}
+.poster .p-title{margin:4px 0 0;font:800 46px/.95 var(--f-display);letter-spacing:-.035em}
+.poster .p-title span{color:#E2621B}
+.poster .p-sub{margin:8px 0 0;font:400 13.5px/1.4 var(--f-body);color:#3A4150;max-width:60ch}
+.p-facts{display:grid;grid-template-columns:repeat(4,1fr);border-top:2px solid #11141B;border-bottom:1px solid #C9C4BA}
+.p-facts div{padding:9px 10px 9px 0;display:flex;flex-direction:column;gap:3px}
+.p-facts div+div{padding-left:12px;border-left:1px solid #C9C4BA}
+.p-facts b{font:700 21px/1 var(--f-display);letter-spacing:-.02em}
+.p-facts span{font:400 10.5px/1.25 var(--f-body);color:#4A5162}
+.p-mx{position:relative;height:336px;margin:2px 0 0 26px}
+.p-plot{position:absolute;left:0;top:0;right:0;bottom:22px}
+.p-plot .pq{position:absolute;width:50%;height:50%}
+.p-plot .pq b{position:absolute;font:700 14px/1 var(--f-display);padding:8px 10px;letter-spacing:-.005em}
+.pq.samen{right:0;top:0;background:#FBD9C3}
+.pq.samen b{left:0;bottom:0;color:#B54510}
+.pq.tevreden{left:0;top:0;background:#D6E3FA}
+.pq.tevreden b{left:0;top:0;color:#1E55B8}
+.pq.info{right:0;bottom:0;background:#F8EADF}
+.pq.info b{right:0;bottom:0;color:#9A5A33}
+.pq.monitor{left:0;bottom:0;background:#E7E8EC}
+.pq.monitor b{left:0;bottom:0;color:#4E5872}
+.p-plot .pax{position:absolute;font:600 9.5px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:#4A5162;white-space:nowrap}
+.p-plot .pax.y{left:-14px;top:50%;transform:translate(-50%,-50%) rotate(-90deg)}
+.p-plot .pax.x{left:50%;bottom:-16px;transform:translateX(-50%)}
+.pdot{position:absolute;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;display:grid;place-items:center;font:600 9.5px/1 var(--f-mono);color:#fff;border:2px solid #F3F0EA}
+.pdot.samen{background:#E2621B}
+.pdot.tevreden{background:#2F6FE0}
+.pdot.info{background:#D9935F}
+.pdot.monitor{background:#6F7A93}
+.plbl{position:absolute;font:600 11.5px/1.1 var(--f-body);white-space:nowrap;color:#11141B}
+.p-quads{display:grid;grid-template-columns:repeat(3,1fr);gap:9px 14px}
+.pqb.samen{grid-column:1 / -1}
+.pqb.samen ul{display:grid;grid-template-columns:1fr 1fr;gap:3px 18px}
+.pqb{border-top:3px solid var(--pc);padding:7px 2px 0}
+.pqb h4{margin:0 0 5px;font:700 14px/1 var(--f-display);color:var(--pc);display:flex;flex-wrap:wrap;gap:3px 10px;align-items:baseline}
+.pqb h4 small{font:500 9px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:#5B6372}
+.pqb ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:2.5px}
+.pqb li{font:400 10.8px/1.3 var(--f-body);color:#2A303C}
+.pqb li b{font-weight:650;color:#11141B}
+.pqb li i{font:600 9px/1 var(--f-mono);font-style:normal;color:#5B6372;margin-right:4px}
+.pqb.samen{--pc:#C9561A}
+.pqb.tevreden{--pc:#2F6FE0}
+.pqb.info{--pc:#A8653A}
+.pqb.monitor{--pc:#5A6580}
+.p-rel{display:grid;grid-template-columns:1.15fr 1fr;gap:16px;border-top:1px solid #C9C4BA;padding-top:10px}
+.p-rel h4{margin:0 0 6px;font:700 14px/1 var(--f-display)}
+.p-rel ul{margin:0;padding:0 0 0 14px;display:flex;flex-direction:column;gap:3px}
+.p-rel li{font:400 10.8px/1.32 var(--f-body);color:#2A303C}
+.p-rel li b{color:#11141B;font-weight:650}
+.p-case{background:#11141B;color:#F3F0EA;border-radius:6px;padding:10px 12px}
+.p-case h4{color:#FF8A45}
+.p-case p{margin:0;font:400 10.8px/1.36 var(--f-body);color:#D9DCE3}
+.p-case p b{color:#fff}
+.p-foot{margin-top:auto;border-top:2px solid #11141B;padding-top:7px;display:flex;flex-direction:column;gap:4px}
+.p-foot p{margin:0;font:400 8.4px/1.38 var(--f-mono);color:#4A5162}
+.p-foot p b{color:#11141B}
+
+/* ---------- 15 bronnen ---------- */
+.refs{columns:2;column-gap:60px;margin:0;padding:0;list-style:none;font:400 18.5px/1.42 var(--f-body);color:var(--mute)}
+.refs li{break-inside:avoid;margin:0 0 9px;padding-left:28px;text-indent:-28px}
+.refs li i{color:var(--paper);font-style:italic}
+.refs a{color:var(--mute);text-decoration:none;word-break:break-all}
+
+/* ---------- lagen buiten het podium ---------- */
+.layer{position:fixed;z-index:50;display:none}
+.layer.open{display:block}
+#notes{left:0;right:0;bottom:0;max-height:42vh;overflow:auto;background:color-mix(in srgb,#06080D 92%,transparent);backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:18px 28px 22px;color:var(--paper)}
+#notes .nh{display:flex;gap:20px;align-items:baseline;flex-wrap:wrap;font:500 14px/1.4 var(--f-mono);color:var(--mute);letter-spacing:.04em;margin-bottom:10px}
+#notes .nh b{color:var(--hot);font-weight:600}
+#notes .nh .nt{margin-left:auto;font-size:20px;color:var(--paper)}
+#notes .nb{font:400 19px/1.55 var(--f-body);max-width:110ch;white-space:pre-line}
+#overview{inset:0;background:color-mix(in srgb,#06080D 94%,transparent);backdrop-filter:blur(10px);overflow:auto;padding:48px}
+#overview h2{margin:0 0 24px;font:700 34px/1 var(--f-display)}
+#overview .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+#overview button{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:10px;padding:18px 20px;border-radius:16px;border:1px solid var(--line);background:var(--ink-2);min-height:120px}
+#overview button:focus-visible{outline:3px solid var(--hot)}
+#overview button.cur{border-color:var(--hot)}
+#overview button small{font:500 13px/1 var(--f-mono);color:var(--mute);letter-spacing:.08em;text-transform:uppercase}
+#overview button span{font:600 20px/1.25 var(--f-body)}
+#help{left:50%;top:50%;transform:translate(-50%,-50%);width:min(760px,92vw);max-height:90vh;overflow:auto;background:var(--ink-2);border:1px solid var(--line);border-radius:22px;padding:30px 34px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+#help h2{margin:0 0 18px;font:700 30px/1 var(--f-display)}
+#help dl{display:grid;grid-template-columns:auto 1fr;gap:12px 22px;margin:0;font:400 17px/1.4 var(--f-body)}
+#help dt{text-align:right;white-space:nowrap}
+#help dd{margin:0;color:var(--mute)}
+#help .x{margin-top:20px;font:500 14px/1.4 var(--f-mono);color:var(--mute)}
+#black{inset:0;background:#000;z-index:60;cursor:none}
+#toast{left:50%;bottom:28px;transform:translateX(-50%);padding:12px 20px;border-radius:99px;background:var(--paper);color:var(--ink);font:600 15px/1 var(--f-mono);z-index:70}
+.ctrl{position:fixed;right:14px;top:14px;z-index:40;display:flex;gap:8px;opacity:0;transition:opacity .3s}
+body.mouse .ctrl{opacity:1}
+.ctrl button{cursor:pointer;width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:color-mix(in srgb,var(--ink-2) 85%,transparent);font:600 15px/1 var(--f-mono);color:var(--paper)}
+.ctrl button:hover{border-color:var(--hot)}
+body.nomouse{cursor:none}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div id="stage" aria-live="polite">
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+  <div class="bg-grain"></div>
+
+  <!-- 1 · COVER -->
+  <section class="slide s-cover" data-title="Wie bepaalt de koers van OpenAI?" data-cast="float" data-glow="1460,520">
+    <svg class="orbit" viewBox="0 0 1100 1100" aria-hidden="true"><circle cx="550" cy="550" r="300"/><circle class="o2" cx="550" cy="550" r="430"/><circle cx="550" cy="550" r="545" opacity=".5"/></svg>
+    <p class="eyebrow" data-a style="--i:0"><b>Mapping the Business</b><i></i>Lesweek 9 · Stakeholderanalyse</p>
+    <h1 class="cover-title split">Wie bepaalt de *koers* van OpenAI?</h1>
+    <p class="cover-sub" data-a style="--i:5">10 stakeholders · macht en belang</p>
+    <p class="cover-meta" data-a style="--i:7"><span>Jort Eeltink</span><span>Business Management, jaar 1 · TIO</span><span>Digital Business &amp; Generative AI</span></p>
+    <i class="anchor float-a" data-node="foundation" data-size="74" style="left:1560px;top:250px"></i>
+    <i class="anchor float-a" data-node="microsoft" data-size="66" style="left:1380px;top:410px"></i>
+    <i class="anchor float-a" data-node="medewerkers" data-size="58" style="left:1700px;top:520px"></i>
+    <i class="anchor float-a" data-node="nvidia" data-size="54" style="left:1250px;top:250px"></i>
+    <i class="anchor float-a" data-node="investeerders" data-size="56" style="left:1500px;top:640px"></i>
+    <i class="anchor float-a" data-node="zakelijk" data-size="50" style="left:1300px;top:760px"></i>
+    <i class="anchor float-a" data-node="eu" data-size="52" style="left:1760px;top:820px"></i>
+    <i class="anchor float-a" data-node="concurrenten" data-size="40" style="left:1180px;top:580px"></i>
+    <i class="anchor float-a" data-node="consumenten" data-size="44" style="left:1620px;top:900px"></i>
+    <i class="anchor float-a" data-node="makers" data-size="46" style="left:1800px;top:330px"></i>
+    <aside class="notes" data-time="0:15">Ik heb een stakeholderanalyse gemaakt van OpenAI, het bedrijf achter ChatGPT.
+Mijn vraag: wie bepaalt eigenlijk de koers van OpenAI?</aside>
+  </section>
+
+  <!-- 2 · HET BEDRIJF -->
+  <section class="slide s-company" data-title="OpenAI in het kort" data-glow="400,300" data-tr="zoom">
+    <div>
+      <p class="eyebrow" data-a style="--i:0"><b>01</b><i></i>Het bedrijf</p>
+      <h2 class="title split">OpenAI in het kort</h2>
+    </div>
+    <div class="grid">
+      <div class="struct" data-a style="--i:2">
+        <div class="box core"><i class="anchor" data-node="foundation" data-size="46"></i><div><h4>OpenAI Foundation</h4><p>stichting</p></div><span class="pct num">≈ 26%*</span></div>
+        <div class="link">bestuurt</div>
+        <div class="box"><div><h4>OpenAI Group PBC</h4><p>het bedrijf achter ChatGPT</p></div></div>
+        <div class="link">ook eigenaar</div>
+        <div class="owners">
+          <div class="box"><div class="row"><i class="anchor" data-node="microsoft" data-size="40"></i><h4>Microsoft</h4></div><span class="pct num">≈ 27%*</span></div>
+          <div class="box"><div class="row"><i class="anchor" data-node="medewerkers" data-size="40"></i><i class="anchor" data-node="investeerders" data-size="40"></i><h4>Medewerkers en investeerders</h4></div><span class="pct num">≈ 47%*</span></div>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat hl" data-a style="--i:3"><b data-count="1.2" data-dec="1" data-suf=" mld">1,2 mld</b><span>gebruikers per week</span></div>
+        <div class="stat" data-a style="--i:4"><b data-count="4500" data-pre="≈ ">≈ 4.500</b><span>medewerkers</span></div>
+        <div class="stat" data-a style="--i:5"><b data-count="852" data-pre="$ " data-suf=" mld">$ 852 mld</b><span>waarde (maart 2026)</span></div>
+        <div class="stat" data-a style="--i:6"><b data-count="13.1" data-dec="1" data-pre="$ " data-suf=" mld">$ 13,1 mld</b><span>omzet 2025, nog verlies</span></div>
+      </div>
+    </div>
+    <p class="src">Bronnen: Bonifacic et al. (2026); Claburn (2025); Quartz Staff (2026); Wikipedia-bijdragers (z.d.-a). * Eigendom bij de herstructurering, oktober 2025.</p>
+    <aside class="notes" data-time="0:30">Eerst het bedrijf. ChatGPT heeft 1,2 miljard gebruikers per week.
+Opvallend is de structuur: een stichting, de OpenAI Foundation, bestuurt het bedrijf. Microsoft bezit ongeveer een kwart.
+Ik koos OpenAI omdat het de grootste speler in mijn branche is. Ik gebruikte het ook bij distributie en Porter.</aside>
+  </section>
+
+  <!-- 3 · WAT IS EEN STAKEHOLDER -->
+  <section class="slide s-theory" data-title="Wat is een stakeholder?" data-glow="1500,800">
+    <div>
+      <p class="eyebrow" data-a style="--i:0"><b>02</b><i></i>Theorie</p>
+      <h2 class="title split">Wat is een stakeholder?</h2>
+    </div>
+    <blockquote class="def" data-a style="--i:2" cite="Freeman 1984">Iedereen die invloed heeft op een bedrijf, of erdoor geraakt wordt.<cite>Freeman (1984, p. 46), vrij vertaald</cite></blockquote>
+    <div class="ie" data-a style="--i:3">
+      <div class="panel"><h3><b>Intern</b> · 2</h3>
+        <ul class="who"><li><i class="anchor" data-node="foundation" data-size="40"></i>OpenAI Foundation (bestuur)</li><li><i class="anchor" data-node="medewerkers" data-size="40"></i>Medewerkers</li></ul>
+      </div>
+      <div class="panel"><h3><b>Extern</b> · 8</h3>
+        <ul class="who cols">
+          <li><i class="anchor" data-node="microsoft" data-size="40"></i>Microsoft</li>
+          <li><i class="anchor" data-node="eu" data-size="40"></i>Europese Commissie</li>
+          <li><i class="anchor" data-node="nvidia" data-size="40"></i>Nvidia</li>
+          <li><i class="anchor" data-node="concurrenten" data-size="40"></i>Concurrenten</li>
+          <li><i class="anchor" data-node="investeerders" data-size="40"></i>Investeerders</li>
+          <li><i class="anchor" data-node="consumenten" data-size="40"></i>Consumenten</li>
+          <li><i class="anchor" data-node="zakelijk" data-size="40"></i>Zakelijke klanten</li>
+          <li><i class="anchor" data-node="makers" data-size="40"></i>Makers en uitgevers</li>
+        </ul>
+      </div>
+    </div>
+        <p class="src">Bron: Freeman (1984). Selectie van tien stakeholders: eigen keuze op basis van de bronnen.</p>
+    <aside class="notes" data-time="0:20">Een stakeholder is iedereen die invloed heeft op een bedrijf, of erdoor geraakt wordt. Dat komt van Freeman.
+Ik koos er tien: twee intern en acht extern.</aside>
+  </section>
+
+  <!-- 4 · HET MODEL -->
+  <section class="slide s-model" data-title="De power-interestmatrix" data-glow="1200,300">
+    <div>
+      <p class="eyebrow" data-a style="--i:0"><b>03</b><i></i>Het model</p>
+      <h2 class="title split">De power-interestmatrix</h2>
+    </div>
+    <div class="grid">
+      <div class="m2" data-a style="--i:2">
+        <div class="axis-y"><span>Macht · invloed →</span></div>
+        <div class="q tevreden"><small>Veel macht · laag belang</small><h4 data-q-label="tevreden">Tevreden houden</h4><p>Tevreden houden, niet overladen</p></div>
+        <div class="q samen"><small>Veel macht · hoog belang</small><h4 data-q-label="samen">Samenwerken</h4><p>Sleutelspelers: nauw betrekken</p></div>
+        <div class="q monitor"><small>Weinig macht · laag belang</small><h4 data-q-label="monitor">Monitoren</h4><p>In de gaten houden</p></div>
+        <div class="q info"><small>Weinig macht · hoog belang</small><h4 data-q-label="info">Informeren</h4><p>Op de hoogte houden</p></div>
+        <div class="axis-x"><span>Belang · interesse →</span></div>
+      </div>
+      <div class="legend" data-a style="--i:4">
+        <h3>Kleuren</h3>
+        <div class="sw">
+          <div><i style="background:var(--cold)"></i>veel macht, laag belang</div>
+          <div><i style="background:var(--hot)"></i>veel macht, hoog belang</div>
+          <div><i style="background:var(--pale)"></i>weinig macht, laag belang</div>
+          <div><i style="background:var(--warm)"></i>weinig macht, hoog belang</div>
+        </div>
+        <p>Scores 0–100, eigen inschatting. Vanaf 50 = hoog.</p>
+      </div>
+    </div>
+    <p class="src">Model: Mendelow (1981); The Open University (z.d.); Whittington et al. (2024). Scores: eigen inschatting.</p>
+    <aside class="notes" data-time="0:30">Ik zet ze in de power-interestmatrix. Omhoog is macht, naar rechts is belang.
+Rechtsboven zitten de sleutelspelers: daar werk je mee samen.
+Machtig maar weinig betrokken: tevreden houden. Betrokken maar weinig macht: informeren. De rest houd je in de gaten.
+Oranje betekent veel belang, blauw weinig.</aside>
+  </section>
+
+  <!-- 5 · DE TIEN -->
+  <section class="slide s-ten" data-title="De tien stakeholders" data-glow="960,200">
+    <div>
+      <p class="eyebrow" data-a style="--i:0"><b>04</b><i></i>De stakeholders</p>
+      <h2 class="title split">De tien stakeholders</h2>
+    </div>
+    <div class="ten" id="ten"></div>
+    <p class="src">Gebruikers: Bonifacic et al. (2026). Eigendom: Claburn (2025). Investeerders: Malik (2026); Quartz Staff (2026).</p>
+    <aside class="notes" data-time="0:10">Dit zijn ze alle tien. Ik loop ze per vak langs.</aside>
+  </section>
+
+  <!-- 6 · SAMENWERKEN 1 -->
+  <section class="slide s-deep" data-title="Samenwerken: eigenaren en mensen" data-glow="1700,200" data-tr="wipe" data-wipe="Samenwerken" data-wipe-sub="Veel macht · hoog belang">
+    <div>
+      <p class="eyebrow" data-a style="--i:0"><b>05</b><i></i>Samenwerken · 1 van 2</p>
+      <h2 class="title sm split">Eigenaren en mensen</h2>
+    </div>
+    <div class="cards">
+      <article class="card" data-qc="samen" data-a style="--i:2">
+        <header><i class="anchor" data-node="foundation" data-size="58"></i><div><h3>OpenAI Foundation</h3><p>Intern · stichting</p></div></header>
+        <dl>
+          <div><dt>Wie</dt><dd>Stichting, ≈ 26%, kiest het bestuur</dd></div>
+          <div><dt>Belang</dt><dd>De missie bewaken</dd></div>
+          <div><dt>Invloed</dt><dd><span class="meter"><i><b style="--v:95"></b></i><span>macht 95</span></span>Zeer hoog</dd></div>
+          <div><dt>Aanpak</dt><dd>Meebeslissen bij grote keuzes</dd></div>
+        </dl>
+      </article>
+      <article class="card" data-qc="samen" data-a style="--i:3">
+        <header><i class="anchor" data-node="microsoft" data-size="58"></i><div><h3>Microsoft</h3><p>Extern · aandeelhouder</p></div></header>
+        <dl>
+          <div><dt>Wie</dt><dd>≈ 24% van de aandelen + de cloud</dd></div>
+          <div><dt>Belang</dt><dd>Rendement en AI voor eigen producten</dd></div>
+          <div><dt>Invloed</dt><dd><span class="meter"><i><b style="--v:90"></b></i><span>macht 90</span></span>Geld en rekenkracht</dd></div>
+          <div><dt>Aanpak</dt><dd>Vast overleg, deals vooraf bespreken</dd></div>
+        </dl>
+      </article>
+      <article class="card" data-qc="samen" data-a style="--i:4">
+        <header><i class="anchor" data-node="medewerkers" data-size="58"></i><div><h3>Medewerkers</h3><p>Intern · ± 4.500 mensen</p></div></header>
+        <dl>
+          <div><dt>Wie</dt><dd>Hun kennis is het product</dd></div>
+          <div><dt>Belang</dt><dd>Goed werk, aandelen, de missie</dd></div>
+          <div><dt>Invloed</dt><dd><span class="meter"><i><b style="--v:72"></b></i><span>macht 72</span></span>Hoog (zie 2023)</dd></div>
+          <div><dt>Aanpak</dt><dd>Aandelen en inspraak</dd></div>
+        </dl>
+      </article>
+    </div>
+    <p class="src">Bronnen: Bastian (2026); Bellan (2026); Bort (2026); Claburn (2025); Nuñez (2026); Wikipedia-bijdragers (z.d.-a). Aanpak: eigen advies.</p>
+    <aside class="notes" data-time="0:40">Eerst de sleutelspelers.
+De OpenAI Foundation kiest het bestuur en bewaakt de missie. Die betrek je bij elke grote keuze.
+Microsoft heeft ongeveer een kwart van de aandelen en levert de cloud. Daar wil je vast overleg mee.
+En de medewerkers: hun kennis is het product. Hoeveel macht ze hebben, laat ik zo zien.</aside>
+  </section>
+
+  <!-- 7 · SAMENWERKEN 2 -->
+  <section class="slide s-deep" data-title="Samenwerken: geld, chips en klanten" data-glow="1600,300">
+    <div>
+      <p class="eyebrow" data-a style="--i:0"><b>05</b><i></i>Samenwerken · 2 van 2</p>
+      <h2 class="title sm split">Geld, chips en klanten</h2>
+    </div>
+    <div class="cards">
+      <article class="card" data-qc="samen" data-a style="--i:2">
+        <header><i class="anchor" data-node="nvidia" data-size="58"></i><div><h3>Nvidia</h3><p>Extern · leverancier</p></div></header>
+        <dl>
+          <div><dt>Wie</dt><dd>Chipleverancier + investeerder ($ 30 mld)</dd></div>
+          <div><dt>Belang</dt><dd>Chips verkopen</dd></div>
+          <div><dt>Invloed</dt><dd><span class="meter"><i><b style="--v:80"></b></i><span>macht 80</span></span>Geen chips, geen AI</dd></div>
+          <div><dt>Aanpak</dt><dd>Langlopende deals, ook AMD</dd></div>
+        </dl>
+      </article>
+      <article class="card" data-qc="samen" data-a style="--i:3">
+        <header><i class="anchor" data-node="investeerders" data-size="58"></i><div><h3>Investeerders</h3><p>Extern · SoftBank, Amazon</p></div></header>
+        <dl>
+          <div><dt>Wie</dt><dd>SoftBank $ 64,6 mld, Amazon tot $ 50 mld</dd></div>
+          <div><dt>Belang</dt><dd>Rendement en een beursgang</dd></div>
+          <div><dt>Invloed</dt><dd><span class="meter"><i><b style="--v:75"></b></i><span>macht 75</span></span>OpenAI draait nog verlies</dd></div>
+          <div><dt>Aanpak</dt><dd>Vaste rapportage</dd></div>
+        </dl>
+      </article>
+      <article class="card" data-qc="samen" data-a style="--i:4">
+        <header><i class="anchor" data-node="zakelijk" data-size="58"></i><div><h3>Zakelijke klanten</h3><p>Extern · bedrijven</p></div></header>
+        <dl>
+          <div><dt>Wie</dt><dd>1 mln bedrijven, ruim 40% van de omzet</dd></div>
+          <div><dt>Belang</dt><dd>Veilige, betaalbare AI</dd></div>
+          <div><dt>Invloed</dt><dd><span class="meter"><i><b style="--v:65"></b></i><span>macht 65</span></span>Kunnen overstappen</dd></div>
+          <div><dt>Aanpak</dt><dd>Accountmanagers, Azure en AWS</dd></div>
+        </dl>
+      </article>
+    </div>
+    <p class="src">Bronnen: Basil (2026); Dignan (2025); Malik (2026); Méndez &amp; Hu (2026); Quartz Staff (2026); Wikipedia-bijdragers (z.d.-a). Aanpak: eigen advies.</p>
+    <aside class="notes" data-time="0:35">Dan geld, chips en klanten.
+Zonder Nvidia-chips geen nieuwe modellen, en Nvidia investeerde ook 30 miljard dollar.
+SoftBank en Amazon stopten er tientallen miljarden in, want OpenAI maakt nog verlies.
+Zakelijke klanten leveren ruim 40 procent van de omzet, maar ze kunnen overstappen naar Gemini of Claude.</aside>
+  </section>
+
+  <!-- 8 · TEVREDEN HOUDEN + MONITOREN -->
+  <section class="slide s-deep" data-title="Tevreden houden en monitoren" data-glow="300,250">
+    <div>
+      <p class="eyebrow" data-a style="--i:0"><b>06</b><i></i>Laag belang</p>
+      <h2 class="title sm split">Regels en concurrenten</h2>
+    </div>
+    <div class="cards two">
+      <article class="card" data-qc="tevreden" data-a style="--i:2">
+        <header><i class="anchor" data-node="eu" data-size="58"></i><div><h3>Europese Commissie</h3><p>Extern · <span data-q-label="tevreden">Tevreden houden</span></p></div></header>
+        <dl>
+          <div><dt>Wie</dt><dd>Toezicht via AI Office en DSA</dd></div>
+          <div><dt>Belang</dt><dd>Veilige AI voor alle Europeanen</dd></div>
+          <div><dt>Invloed</dt><dd><span class="meter"><i><b style="--v:85"></b></i><span>macht 85</span></span>Boetes tot 3% van de omzet</dd></div>
+          <div><dt>Aanpak</dt><dd>Regels naleven, op tijd rapporteren</dd></div>
+        </dl>
+      </article>
+      <article class="card" data-qc="monitor" data-a style="--i:3">
+        <header><i class="anchor" data-node="concurrenten" data-size="58"></i><div><h3>Concurrenten</h3><p>Extern · <span data-q-label="monitor">Monitoren</span></p></div></header>
+        <dl>
+          <div><dt>Wie</dt><dd>Google (Gemini ≈ 27%) en Anthropic (Claude ≈ 9%)</dd></div>
+          <div><dt>Belang</dt><dd>Hun eigen marktaandeel</dd></div>
+          <div><dt>Invloed</dt><dd><span class="meter"><i><b style="--v:40"></b></i><span>macht 40</span></span>Alleen via de markt</dd></div>
+          <div><dt>Aanpak</dt><dd>Volgen, niet betrekken</dd></div>
+        </dl>
+      </article>
+    </div>
+    <p class="src">Bronnen: EU Artificial Intelligence Act (z.d.); Europese Commissie (z.d.); Law Society of Ireland Gazette (2026); Zohar Basteker (2026). Aanpak: eigen advies.</p>
+    <aside class="notes" data-time="0:30">De Europese Commissie is machtig: ze kan boetes geven tot 3 procent van de wereldomzet. Maar ze kijkt naar alle AI-bedrijven, niet speciaal naar OpenAI. Dus: tevreden houden door de regels na te leven.
+Concurrenten als Google en Anthropic hebben geen zeggenschap over OpenAI. Die volg je alleen.</aside>
+  </section>
+
+  <!-- 9 · INFORMEREN -->
+  <section class="slide s-deep" data-title="Informeren: gebruikers en makers" data-glow="1500,900">
+    <div>
+      <p class="eyebrow" data-a style="--i:0"><b>07</b><i></i>Weinig macht · hoog belang</p>
+      <h2 class="title sm split">Gebruikers en makers</h2>
+    </div>
+    <div class="cards two">
+      <article class="card" data-qc="info" data-a style="--i:2">
+        <header><i class="anchor" data-node="consumenten" data-size="58"></i><div><h3>Consumenten</h3><p>Extern · <span data-q-label="info">Informeren</span></p></div></header>
+        <dl>
+          <div><dt>Wie</dt><dd>1,2 mld gebruikers per week</dd></div>
+          <div><dt>Belang</dt><dd>Goede hulp en privacy</dd></div>
+          <div><dt>Invloed</dt><dd><span class="meter"><i><b style="--v:35"></b></i><span>macht 35</span></span>Alleen samen sterk</dd></div>
+          <div><dt>Aanpak</dt><dd>Helder informeren over privacy en advertenties</dd></div>
+        </dl>
+      </article>
+      <article class="card" data-qc="info" data-a style="--i:3">
+        <header><i class="anchor" data-node="makers" data-size="58"></i><div><h3>Makers en uitgevers</h3><p>Extern · <span data-q-label="info">Informeren</span></p></div></header>
+        <dl>
+          <div><dt>Wie</dt><dd>The New York Times, GEMA, schrijvers</dd></div>
+          <div><dt>Belang</dt><dd>Toestemming en betaling</dd></div>
+          <div><dt>Invloed</dt><dd><span class="meter"><i><b style="--v:45"></b></i><span>macht 45</span></span>Via de rechter</dd></div>
+          <div><dt>Aanpak</dt><dd>Licentiedeals aanbieden</dd></div>
+        </dl>
+      </article>
+    </div>
+    <p class="src">Bronnen: AFP (2026); Allyn (2025); Bonifacic et al. (2026); GEMA (2025); Hogan Lovells (z.d.); Jacobs (2026); Levine (2026); Malik (2026). Aanpak: eigen advies.</p>
+    <aside class="notes" data-time="0:30">Tot slot: veel belang, weinig macht.
+Eén gebruiker verandert niets, maar samen kunnen 1,2 miljard gebruikers overstappen. Die informeer je goed, bijvoorbeeld over privacy en advertenties.
+Makers, zoals The New York Times, willen betaald worden voor hun werk. Hun macht loopt via de rechter.</aside>
+  </section>
+
+  <!-- 10 · DE MATRIX -->
+  <section class="slide s-matrix" data-title="De matrix" data-steps="4" data-glow="900,300" data-tr="wipe" data-wipe="De matrix" data-wipe-sub="Alle tien op hun plek">
+    <div class="mx-left">
+      <div class="mx-head">
+        <p class="eyebrow" data-a style="--i:0"><b>08</b><i></i>Power-interestmatrix</p>
+        <h2 class="title sm split">Alle tien op hun plek</h2>
+      </div>
+      <div class="plot" id="plot" data-a style="--i:2">
+        <div class="qbg tevreden"><b data-q-label="tevreden">Tevreden houden</b></div>
+        <div class="qbg samen"><b data-q-label="samen">Samenwerken</b></div>
+        <div class="qbg monitor"><b data-q-label="monitor">Monitoren</b></div>
+        <div class="qbg info"><b data-q-label="info">Informeren</b></div>
+        <span class="ax y">Macht · invloed →</span>
+        <span class="ax x">Belang · interesse →</span>
+      </div>
+    </div>
+    <div class="mx-right" id="mxlist"></div>
+    <p class="src" style="right:auto;width:1100px">Macht en belang van 0 tot 100: eigen inschatting op basis van de bronnen. Model: Mendelow (1981).</p>
+    <aside class="notes" data-time="0:30">Hier staan ze samen.
+[klik] Rechtsboven zes sleutelspelers.
+[klik] Linksboven de EU.
+[klik] Rechtsonder de gebruikers en de makers.
+[klik] Linksonder de concurrenten.
+Het vak samenwerken is het drukst: OpenAI is van veel partijen tegelijk afhankelijk.</aside>
+  </section>
+
+  <!-- 11 · RELATIES -->
+  <section class="slide s-net" data-title="Wie beïnvloedt wie?" data-steps="2" data-glow="1010,640">
+    <div class="head">
+      <p class="eyebrow" data-a style="--i:0"><b>09</b><i></i>Onderlinge verhoudingen</p>
+      <h2 class="title sm split">Wie beïnvloedt wie?</h2>
+      <div class="netlegend" data-a style="--i:2"><span><i></i>belangen komen samen</span><span><i class="d"></i>belangen botsen</span></div>
+    </div>
+    <svg class="edges" id="edges" viewBox="0 0 1920 1080" aria-label="Netwerk van relaties tussen de stakeholders"></svg>
+    <div id="netlabels"></div>
+    <div class="hub" style="left:1010px;top:640px">OpenAI</div>
+    <p class="src">Bronnen: Allyn (2025); Bort (2026); Claburn (2025); Jacobs (2026); Méndez &amp; Hu (2026); Microsoft (2026); Nuñez (2026). Indeling samen/botsen: eigen analyse.</p>
+    <aside class="notes" data-time="0:35">Stakeholders beïnvloeden ook elkaar.
+[klik] Soms helpen ze elkaar: Nvidia investeert in OpenAI, en OpenAI koopt weer Nvidia-chips.
+[klik] Soms botsen ze: Amazon wilde OpenAI op zijn eigen cloud, maar Microsoft had dat exclusief. In april 2026 maakten ze nieuwe afspraken.</aside>
+  </section>
+
+  <!-- 12 · NOVEMBER 2023 -->
+  <section class="slide s-case" data-title="Vijf dagen in november 2023" data-steps="3" data-glow="400,800">
+    <div>
+      <p class="eyebrow" data-a style="--i:0"><b>10</b><i></i>Concreet voorbeeld</p>
+      <h2 class="title sm split">Vijf dagen in november 2023</h2>
+    </div>
+    <div class="days" id="days">
+      <div class="day" data-a style="--i:2"><span class="pin"></span><time>17 nov</time><h4>Bestuur ontslaat Altman</h4><div class="who-chips"><span class="chip q-chip" data-qc="samen">1 Foundation (bestuur)</span></div></div>
+      <div class="day" data-step="1"><span class="pin"></span><time>20 nov</time><h4>Microsoft neemt hem aan</h4><div class="who-chips"><span class="chip q-chip" data-qc="samen">2 Microsoft</span></div></div>
+      <div class="day" data-step="2"><span class="pin"></span><time>20 nov</time><h4>700+ van de ± 770 medewerkers dreigen te gaan</h4><div class="who-chips"><span class="chip q-chip" data-qc="samen">3 Medewerkers</span><span class="chip q-chip" data-qc="samen">2 Microsoft</span></div></div>
+      <div class="day" data-step="3"><span class="pin"></span><time>22 nov</time><h4>Altman terug, nieuw bestuur</h4><div class="who-chips"><span class="chip q-chip" data-qc="samen">1 Foundation (bestuur)</span><span class="chip q-chip" data-qc="samen">3 Medewerkers</span></div></div>
+    </div>
+    <div class="lesson" data-step="3"><b>Les</b><p>Formele macht is niet genoeg: de sleutelspelers moeten samenwerken.</p></div>
+    <p class="src" id="case-src">Bronnen: Gordon (2023); O’Brien (2023); Vance et al. (2023); Wikipedia-bijdragers (z.d.-b); Zahn (2023).</p>
+    <aside class="notes" data-time="0:40">Het beste voorbeeld: november 2023. Het bestuur ontsloeg topman Sam Altman.
+[klik] Drie dagen later nam Microsoft hem aan.
+[klik] Dezelfde dag dreigden ruim 700 van de ongeveer 770 medewerkers mee te gaan.
+[klik] Vijf dagen later was Altman terug, met een nieuw bestuur.
+Het bestuur had formeel de macht, maar zonder medewerkers en Microsoft lukte het niet.</aside>
+  </section>
+
+  <!-- 13 · CONCLUSIE -->
+  <section class="slide s-concl" data-title="Conclusie" data-glow="1600,600">
+    <div>
+      <p class="eyebrow" data-a style="--i:0"><b>11</b><i></i>Conclusie</p>
+      <h2 class="title sm split">Wat betekent dit voor OpenAI?</h2>
+    </div>
+    <div class="grid">
+      <ol class="take">
+        <li data-a style="--i:2"><div><h4>Zes sleutelspelers om mee samen te werken</h4></div></li>
+        <li data-a style="--i:3"><div><h4>Macht is meer dan zeggenschap</h4></div></li>
+        <li data-a style="--i:4"><div><h4>De matrix beweegt (NYT, EU)</h4></div></li>
+      </ol>
+      <div class="mini" id="mini" data-a style="--i:3">
+        <div class="qbg tevreden"><b data-q-label="tevreden">Tevreden houden</b></div>
+        <div class="qbg samen"><b data-q-label="samen">Samenwerken</b></div>
+        <div class="qbg monitor"><b data-q-label="monitor">Monitoren</b></div>
+        <div class="qbg info"><b data-q-label="info">Informeren</b></div>
+        <span class="ax y">Macht →</span><span class="ax x">Belang →</span>
+        <svg class="shift" id="shift" viewBox="0 0 500 500" aria-label="Mogelijke verschuivingen in de matrix"></svg>
+      </div>
+    </div>
+    <p class="src">Eigen analyse op basis van de bronnen in deze presentatie.</p>
+    <aside class="notes" data-time="0:25">Drie conclusies.
+OpenAI moet samenwerken met zes sleutelspelers.
+Macht is meer dan zeggenschap: dat zag je in 2023.
+En de matrix beweegt: wint de New York Times de rechtszaak, dan schuiven de makers omhoog.</aside>
+  </section>
+
+  <!-- 14 · POSTER -->
+  <section class="slide s-poster" data-title="De poster" data-glow="500,500" data-tr="wipe" data-wipe="De poster" data-wipe-sub="Alles op één A3">
+    <div class="poster-hold">
+      <div class="poster" id="poster" data-a style="--i:1">
+        <p class="p-eye"><span>Stakeholderanalyse · Mapping the Business · Lesweek 9</span><span>TIO · 2026</span></p>
+        <h2 class="p-title">Wie bepaalt de koers van <span>OpenAI</span>?</h2>
+        <p class="p-sub">Tien stakeholders van het bedrijf achter ChatGPT in een power-interestmatrix (Mendelow, 1981). Jort Eeltink · Business Management jaar 1 · Digital Business &amp; Generative AI</p>
+        <div class="p-facts">
+          <div><b>1,2 mld</b><span>gebruikers per week (sept. 2026)</span></div>
+          <div><b>≈ 4.500</b><span>medewerkers (2026)</span></div>
+          <div><b>$ 852 mld</b><span>waarde (maart 2026)</span></div>
+          <div><b>Stichting</b><span>bestuurt het bedrijf (sinds okt. 2025)</span></div>
+        </div>
+        <div class="p-mx"><div class="p-plot" id="pplot">
+          <div class="pq tevreden"><b data-q-label="tevreden">Tevreden houden</b></div>
+          <div class="pq samen"><b data-q-label="samen">Samenwerken</b></div>
+          <div class="pq monitor"><b data-q-label="monitor">Monitoren</b></div>
+          <div class="pq info"><b data-q-label="info">Informeren</b></div>
+          <span class="pax y">Macht · invloed →</span><span class="pax x">Belang · interesse →</span>
+        </div></div>
+        <div class="p-quads" id="pquads"></div>
+        <div class="p-rel">
+          <div>
+            <h4>Onderlinge verhoudingen</h4>
+            <ul>
+              <li><b>Samen:</b> Nvidia investeert $ 30 mld in OpenAI, en OpenAI koopt Nvidia-chips.</li>
+              <li><b>Samen:</b> bedrijven kopen OpenAI-modellen via Azure van Microsoft.</li>
+              <li><b>Botsen:</b> Amazon wilde OpenAI op AWS; Microsoft gaf in april 2026 de exclusiviteit op.</li>
+              <li><b>Botsen:</b> de stichting wil de missie, investeerders willen rendement.</li>
+              <li><b>Botsen:</b> makers stappen naar de rechter: GEMA won in 2025, de NYT-zaak tegen OpenAI én Microsoft loopt nog.</li>
+            </ul>
+          </div>
+          <div class="p-case">
+            <h4>Voorbeeld: november 2023</h4>
+            <p>Het bestuur ontslaat Sam Altman (17 nov.). Microsoft neemt hem aan, en <b>ruim 700 van de ± 770 medewerkers</b> dreigen mee te gaan. Op 22 nov. is Altman terug, met een nieuw bestuur. <b>Les:</b> formele macht is niet genoeg; de sleutelspelers moeten samen optrekken.</p>
+          </div>
+        </div>
+        <div class="p-foot">
+          <p><b>Scores</b> macht en belang 0–100: eigen inschatting op basis van bronnen; vanaf 50 = hoog.</p>
+          <p id="pfoot-src"><b>Bronnen</b> (volledige APA-lijst in het portfolio): Allyn (2025); Basil (2026); Bonifacic et al. (2026); Bort (2026); Claburn (2025); Dignan (2025); EU Artificial Intelligence Act (z.d.); Freeman (1984); GEMA (2025); Jacobs (2026); Law Society of Ireland Gazette (2026); Malik (2026); Mendelow (1981); Méndez &amp; Hu (2026); Nuñez (2026); O’Brien (2023); Quartz Staff (2026); Vance et al. (2023); Zahn (2023); Zohar Basteker (2026).</p>
+        </div>
+      </div>
+    </div>
+    <div class="ptext">
+      <p class="eyebrow" data-a style="--i:0"><b>12</b><i></i>Poster</p>
+      <h2 class="title split">Alles op één poster</h2>
+      <p class="ask" data-a style="--i:5">Vragen?</p>
+    </div>
+    <aside class="notes" data-time="0:10">Alles staat samen op mijn poster. Die komt ook in mijn portfolio.
+Zijn er vragen?
+(Z = inzoomen op de poster.)</aside>
+  </section>
+
+  <!-- 15-16 · BRONNEN -->
+  <section class="slide s-refs" data-title="Bronnen (1 van 2)" data-glow="1700,900">
+    <div>
+      <p class="eyebrow" data-a style="--i:0"><b>13</b><i></i>Bronnen · 1 van 2</p>
+      <h2 class="title sm split">Bronnenlijst (APA)</h2>
+    </div>
+    <ol class="refs" id="refs1" data-a style="--i:2"></ol>
+    <aside class="notes" data-time="0:00">Niet voorlezen. Alleen laten zien als iemand naar bronnen vraagt.</aside>
+  </section>
+  <section class="slide s-refs" data-title="Bronnen (2 van 2)" data-glow="300,900">
+    <div>
+      <p class="eyebrow" data-a style="--i:0"><b>13</b><i></i>Bronnen · 2 van 2</p>
+      <h2 class="title sm split">Bronnenlijst (APA)</h2>
+    </div>
+    <ol class="refs" id="refs2" data-a style="--i:2"></ol>
+    <aside class="notes" data-time="0:00">Niet voorlezen.</aside>
+  </section>
+
+  <div class="cast" id="cast" aria-hidden="true"></div>
+  <div class="wipe" id="wipe" aria-hidden="true"><small></small><span></span></div>
+  <div class="hud hud-brand">OpenAI · stakeholderanalyse</div>
+  <div class="hud hud-timer num" id="timer">00:00</div>
+  <div class="hud hud-count num" id="count"><b>01</b> / 16</div>
+  <div class="progress"><i id="prog"></i></div>
+  <div class="hint" id="hint"><kbd>→</kbd> volgende &nbsp; <kbd>N</kbd> spreektekst &nbsp; <kbd>H</kbd> alle sneltoetsen</div>
+</div>
+
+<div class="ctrl" id="ctrl">
+  <button type="button" id="b-prev" aria-label="Vorige dia">←</button>
+  <button type="button" id="b-next" aria-label="Volgende dia">→</button>
+  <button type="button" id="b-notes" aria-label="Spreektekst tonen">N</button>
+  <button type="button" id="b-over" aria-label="Overzicht van alle dia's">O</button>
+  <button type="button" id="b-full" aria-label="Volledig scherm">F</button>
+  <button type="button" id="b-help" aria-label="Sneltoetsen">?</button>
+</div>
+
+<div class="layer" id="notes" role="region" aria-label="Spreektekst"><div class="nh"></div><div class="nb"></div></div>
+<div class="layer" id="overview" role="dialog" aria-label="Overzicht van alle dia's"><h2>Alle dia's</h2><div class="tiles"></div></div>
+<div class="layer" id="help" role="dialog" aria-label="Sneltoetsen">
+  <h2>Sneltoetsen</h2>
+  <dl>
+    <dt><kbd>→</kbd> <kbd>spatie</kbd> <kbd>PgDn</kbd></dt><dd>Volgende stap of dia. Een presentatieclicker werkt ook. Klikken rechts op het scherm kan ook.</dd>
+    <dt><kbd>←</kbd> <kbd>PgUp</kbd></dt><dd>Terug</dd>
+    <dt><kbd>N</kbd></dt><dd>Spreektekst, tijd per dia en de volgende dia (onderin)</dd>
+    <dt><kbd>T</kbd></dt><dd>Timer starten of pauzeren (start ook vanzelf na de eerste dia). <kbd>Shift</kbd>+<kbd>T</kbd> zet hem op nul.</dd>
+    <dt><kbd>O</kbd></dt><dd>Overzicht van alle dia's, klik om te springen</dd>
+    <dt><kbd>F</kbd></dt><dd>Volledig scherm aan of uit</dd>
+    <dt><kbd>B</kbd></dt><dd>Zwart scherm (pauze), nog een keer om terug te gaan</dd>
+    <dt><kbd>Z</kbd></dt><dd>Inzoomen op de poster (dia 14)</dd>
+    <dt><kbd>L</kbd></dt><dd>Namen van de vakken wisselen: standaardmodel (Tevreden houden) of de variant uit je PowerPoint (Aandacht geven)</dd>
+    <dt><kbd>1</kbd>–<kbd>9</kbd> + <kbd>Enter</kbd></dt><dd>Spring naar dia met dat nummer</dd>
+    <dt><kbd>Home</kbd> <kbd>End</kbd></dt><dd>Eerste of laatste dia</dd>
+  </dl>
+  <p class="x">Sluiten met Esc of H.</p>
+</div>
+<div class="layer" id="black"></div>
+<div class="layer" id="toast" role="status"></div>
+
+<script>
+(() => {
+"use strict";
+
+/* ===== De tien stakeholders: één bron voor alle dia's en de poster ===== */
+const SH = [
+  {id:"foundation",   n:1,  name:"OpenAI Foundation",   short:"Foundation",        role:"Stichting en bestuur",           kind:"Intern", m:95, b:95, ws:"kiest het bestuur", why:"benoemt het bestuur en bewaakt de missie."},
+  {id:"microsoft",    n:2,  name:"Microsoft",           short:"Microsoft",         role:"Aandeelhouder en cloudpartner",  kind:"Extern", m:90, b:85, ws:"geld en de cloud", why:"bezit ongeveer een kwart, levert de cloud en krijgt tot 2030 een deel van de omzet."},
+  {id:"medewerkers",  n:3,  name:"Medewerkers",         short:"Medewerkers",       role:"± 4.500 mensen",                 kind:"Intern", m:72, b:92, ws:"hun kennis is het product", why:"hun kennis is het product; 2023 liet hun macht zien."},
+  {id:"nvidia",       n:4,  name:"Nvidia",              short:"Nvidia",            role:"Chipleverancier en investeerder",kind:"Extern", m:80, b:70, ws:"levert de chips", why:"levert de chips en investeert mee."},
+  {id:"investeerders",n:5,  name:"Investeerders",       short:"Investeerders",     role:"SoftBank, Amazon e.a.",          kind:"Extern", m:75, b:80, ws:"OpenAI draait verlies", why:"OpenAI maakt verlies en heeft hun geld nodig."},
+  {id:"zakelijk",     n:6,  name:"Zakelijke klanten",   short:"Zakelijke klanten", role:"Bedrijven en ontwikkelaars",     kind:"Extern", m:65, b:72, ws:"ruim 40% van de omzet", why:"ruim 40% van de omzet, en ze kunnen overstappen."},
+  {id:"eu",           n:7,  name:"Europese Commissie",  short:"Europese Commissie",role:"AI Office en DSA-toezicht",      kind:"Extern", m:85, b:40, ws:"kan beboeten, kijkt naar iedereen", why:"kan hoge boetes opleggen, maar kijkt naar alle aanbieders."},
+  {id:"concurrenten", n:8,  name:"Concurrenten",        short:"Concurrenten",      role:"Google (Gemini), Anthropic",     kind:"Extern", m:40, b:40, ws:"geen zeggenschap", why:"geen zeggenschap over OpenAI; ze reageren via de markt."},
+  {id:"consumenten",  n:9,  name:"Consumenten",         short:"Consumenten",       role:"1,2 mld gebruikers per week",    kind:"Extern", m:35, b:85, ws:"alleen samen sterk", why:"zeer betrokken, maar alleen samen machtig."},
+  {id:"makers",       n:10, name:"Makers en uitgevers", short:"Makers en uitgevers",role:"o.a. The New York Times",       kind:"Extern", m:45, b:78, ws:"macht via de rechter", why:"veel belang; hun macht hangt af van de rechter."}
+];
+const quad = s => s.m >= 50 ? (s.b >= 50 ? "samen" : "tevreden") : (s.b >= 50 ? "info" : "monitor");
+const QORDER = ["samen","tevreden","info","monitor"];
+const QLAB = {
+  std:{samen:"Samenwerken", tevreden:"Tevreden houden", info:"Informeren", monitor:"Monitoren"},
+  dia:{samen:"Samenwerken", tevreden:"Aandacht geven", info:"Informeren", monitor:"Monitoren"}
+};
+const QSUB = {samen:"veel macht · hoog belang", tevreden:"veel macht · laag belang", info:"weinig macht · hoog belang", monitor:"weinig macht · laag belang"};
+const byId = Object.fromEntries(SH.map(s => [s.id, s]));
+
+/* ===== Bronnen (APA 7) ===== */
+const REFS = [
+  "AFP. (2026, 20 augustus). <i>OpenAI says ads coming to ChatGPT in Europe</i>. The Star. https://www.thestar.com.my/tech/tech-news/2026/08/20/openai-says-ads-coming-to-chatgpt-in-europe",
+  "Allyn, B. (2025, 27 maart). <i>Judge allows 'New York Times' copyright case against OpenAI to go forward</i> [NPR]. GBH News. https://www.wgbh.org/news/2025-03-26/judge-allows-new-york-times-copyright-case-against-openai-to-go-forward",
+  "Basil, A. K. (2026, 1 oktober). <i>SoftBank completes final phase of $30 billion investment in OpenAI</i> [Reuters]. The Star. https://www.thestar.com.my/tech/tech-news/2026/10/02/softbank-completes-final-phase-of-30-billion-investment-in-openai",
+  "Bastian, M. (2026, 11 augustus). <i>OpenAI lets employees cash out another $7 billion in stock</i>. The Decoder. https://the-decoder.com/openai-lets-employees-cash-out-another-7-billion-in-stock/",
+  "Bellan, R. (2026, 28 oktober). <i>Microsoft recorded $10 billion in revenue from OpenAI</i>. TechCrunch. https://techcrunch.com/2026/10/28/microsoft-recorded-10-billion-in-revenue-from-openai/",
+  "Bonifacic, I., Hardawar, D., &amp; Low, C. (2026, 29 september). <i>OpenAI Dev Day 2026: Live updates on the latest ChatGPT and Codex announcements</i>. Engadget. https://www.engadget.com/2271985/openai-dev-day-live-blog-chatgpt-news/",
+  "Bort, J. (2026, 27 april). <i>OpenAI ends Microsoft legal peril over its $50B Amazon deal</i>. TechCrunch. https://techcrunch.com/2026/04/27/openai-ends-microsoft-legal-peril-over-its-50b-amazon-deal/",
+  "Claburn, T. (2025, 28 oktober). <i>OpenAI non-profit will run for-profit that has yet to make a profit</i>. The Register. https://www.theregister.com/2025/10/28/openai_simplifies_corporate_structure_into/",
+  "Dignan, L. (2025, 5 november). <i>OpenAI touts enterprise mojo with 1 million business customers</i>. Constellation Research. https://www.constellationr.com/insights/news/openai-touts-enterprise-mojo-1-million-business-customers",
+  "EU Artificial Intelligence Act. (z.d.). <i>Enforcement of Chapter V</i>. https://artificialintelligenceact.eu/enforcement-of-chapter-v",
+  "Europese Commissie. (z.d.). <i>The General-Purpose AI Code of Practice</i>. Shaping Europe's digital future. https://digital-strategy.ec.europa.eu/en/policies/contents-code-gpai",
+  "Freeman, R. E. (1984). <i>Strategic management: A stakeholder approach</i>. Pitman.",
+  "GEMA. (2025, 11 november). <i>Europe's first landmark ruling on AI: GEMA prevails against OpenAI</i> [Persbericht]. https://www.gema.de/en/w/landmark-ruling-gema-against-openai",
+  "Gordon, N. (2023, 22 november). <i>Sam Altman returns as OpenAI CEO; Larry Summers and former Salesforce co-CEO Bret Taylor join new board of directors</i>. Fortune. https://fortune.com/2023/11/22/sam-altman-returns-ceo-new-board-bret-taylor-larry-summers",
+  "Hogan Lovells. (z.d.). <i>GEMA v OpenAI</i> [AI litigation case law tracker]. https://digital-client-solutions.hlc.com/resources/ai-litigation-case-law-tracker/case/gema-v-openai",
+  "Jacobs, S. (2026, 19 augustus). <i>OpenAI to show ChatGPT ads in the Netherlands from next week</i>. IamExpat. https://iamexpat.nl/lifestyle/lifestyle-news/openai-show-chatgpt-ads-netherlands-next-week",
+  "Law Society of Ireland Gazette. (2026, 31 augustus). <i>ChatGPT faces extra obligations under DSA</i>. https://www.lawsociety.ie/gazette/top-stories/2026/august/chatgpt-faces-extra-obligations-under-dsa/",
+  "Levine, S. (2026, 27 oktober). <i>New York Times vs. OpenAI and Microsoft: Where the lawsuit stands</i>. Open Class Actions. https://openclassactions.com/news/new-york-times-openai-microsoft-copyright-lawsuit.php",
+  "Malik, A. (2026, 27 februari). <i>ChatGPT reaches 900M weekly active users</i>. TechCrunch. https://techcrunch.com/2026/02/27/chatgpt-reaches-900m-weekly-active-users",
+  "Mendelow, A. L. (1981). Environmental scanning: The impact of the stakeholder concept. <i>ICIS 1981 Proceedings</i>, 20. https://aisel.aisnet.org/icis1981/20/",
+  "Méndez, C., &amp; Hu, K. (2026, 20 februari). <i>Nvidia close to investing US$30 billion in OpenAI's mega funding round, Reuters source says</i> [Reuters]. CP24. https://www.cp24.com/news/money/2026/02/20/nvidia-close-to-investing-us30-billion-in-openais-mega-funding-round-reuters-source-says/",
+  "Microsoft. (2026, 8 oktober). <i>Foundry Models sold by Azure</i>. Microsoft Learn. https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/models-sold-directly-by-azure",
+  "Nuñez, M. (2026, 27 april). <i>Microsoft and OpenAI gut their exclusive deal, freeing OpenAI to sell on AWS and Google Cloud</i>. VentureBeat. https://venturebeat.com/technology/microsoft-and-openai-gut-their-exclusive-deal-freeing-openai-to-sell-on-aws-and-google-cloud",
+  "O'Brien, M. (2023, 21 november). <i>OpenAI says ousted CEO Sam Altman to return to company behind ChatGPT</i> [Associated Press]. KESQ. https://kesq.com/?p=1315823",
+  "Quartz Staff. (2026, 31 maart). <i>OpenAI closes $122 billion funding round, biggest ever in Silicon Valley</i>. Quartz, via Yahoo Finance. https://finance.yahoo.com/markets/stocks/articles/openai-closes-122-billion-funding-010940572.html",
+  "The Open University. (z.d.). <i>4.4 Power versus interest</i>. In <i>Successful IT systems</i>. OpenLearn. https://www.open.edu/openlearn/digital-computing/successful-it-systems/content-section-4.4",
+  "Vance, A., Ludlow, E., &amp; Savov, V. (2023, 20 november). <i>Nearly all of OpenAI staff threaten to go to Microsoft if board doesn't quit</i> [Bloomberg]. Yahoo Finance. https://ca.finance.yahoo.com/news/openai-staff-threaten-microsoft-board-144547958.html",
+  "Whittington, R., Regnér, P., Angwin, D., Johnson, G., &amp; Scholes, K. (2024). <i>Exploring strategy: Text and cases</i> (13e druk). Pearson.",
+  "Wikipedia-bijdragers. (z.d.-a). <i>OpenAI</i>. In Wikipedia. https://en.wikipedia.org/wiki/OpenAI",
+  "Wikipedia-bijdragers. (z.d.-b). <i>Removal of Sam Altman from OpenAI</i>. In Wikipedia. https://en.wikipedia.org/wiki/Removal_of_Sam_Altman_from_OpenAI",
+  "Zahn, M. (2023, 20 november). <i>Sam Altman hired by Microsoft, OpenAI employees threaten to quit in protest of his ouster</i> [ABC News]. ABC7 News. https://abc7news.com/sam-altman-chatgpt-openai-fired/14085707/",
+  "Zohar Basteker, M. (2026, 29 juli). <i>AI search stats 2026: Market share, referral, and citation data</i>. Similarweb. https://aisearch.similarweb.com/blog/gen-ai-stats/"
+];
+
+/* ===== Relaties ===== */
+const NET = {hub:[1010,640], foundation:[790,330], investeerders:[1290,300], microsoft:[1600,560], zakelijk:[1740,830], nvidia:[1320,880], concurrenten:[1520,955], consumenten:[440,660], eu:[300,880], medewerkers:[440,385], makers:[760,915]};
+const NETLP = {foundation:"t", investeerders:"t", microsoft:"r", zakelijk:"t", nvidia:"l", concurrenten:"l", consumenten:"l", eu:"b", medewerkers:"t", makers:"b"};
+const EDGES = [
+  {a:"nvidia", b:"hub", t:"samen", s:1, label:"$ 30 mld in, chips terug"},
+  {a:"nvidia", b:"microsoft", t:"samen", s:1, label:"chips in Azure", at:.42},
+  {a:"zakelijk", b:"microsoft", t:"samen", s:1, label:"koopt via Azure", at:.45},
+  {a:"eu", b:"consumenten", t:"samen", s:1, label:"beschermt gebruikers"},
+  {a:"foundation", b:"hub", t:"samen", s:1, label:"kiest het bestuur", at:.45},
+  {a:"foundation", b:"investeerders", t:"botst", s:2, label:"missie of rendement?"},
+  {a:"investeerders", b:"microsoft", t:"botst", s:2, label:"Amazon wil op AWS"},
+  {a:"makers", b:"hub", t:"botst", s:2, label:"rechtszaken (NYT, GEMA)", at:.4},
+  {a:"consumenten", b:"investeerders", t:"botst", s:2, label:"advertenties", at:.3},
+  {a:"concurrenten", b:"zakelijk", t:"botst", s:2, label:"klanten stappen over"},
+  {a:"medewerkers", b:"foundation", t:"botst", s:2, label:"nov. 2023"}
+];
+
+/* ===== Hulpjes ===== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const stage = $("#stage");
+const slides = $$(".slide");
+const N = slides.length;
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const store = { get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }, set(k,v){ try { localStorage.setItem(k,v); } catch(e){} } };
+const canvas = document.createElement("canvas").getContext("2d");
+const textW = (t, font) => { canvas.font = font; return canvas.measureText(t).width; };
+const pad2 = n => String(n).padStart(2, "0");
+
+/* ===== Schalen naar elk scherm ===== */
+function fit(){ stage.style.setProperty("--k", Math.min(innerWidth / 1920, innerHeight / 1080)); }
+addEventListener("resize", fit); fit();
+
+/* ===== Titels per woord ===== */
+$$(".split").forEach(el => {
+  const words = el.textContent.trim().split(/\s+/);
+  el.innerHTML = words.map((w, i) => {
+    const acc = /^\*.*\*[?.!,]?$/.test(w);
+    const clean = w.replace(/\*/g, "");
+    return `<span class="w"><span style="--wi:${i}"${acc ? ' class="acc"' : ""}>${clean}</span></span>`;
+  }).join(" ");
+});
+
+/* ===== Dia 5: de tien ===== */
+$("#ten").innerHTML = SH.map((s, i) => `
+  <div class="tcard" data-qc="${quad(s)}" data-a style="--i:${2 + (i % 5) * .6 + Math.floor(i / 5) * .8}">
+    <i class="anchor" data-node="${s.id}" data-size="52"></i>
+    <h4>${s.name}</h4><p>${s.role}</p>
+    <div class="chips"><span class="chip">${s.kind}</span><span class="chip q-chip" data-q-label="${quad(s)}"></span></div>
+  </div>`).join("");
+
+/* ===== Dia 10: matrix ===== */
+const plot = $("#plot");
+SH.forEach(s => {
+  const a = document.createElement("i");
+  a.className = "anchor"; a.dataset.node = s.id; a.dataset.size = 42; a.dataset.step = QORDER.indexOf(quad(s)) + 1;
+  a.style.cssText = `width:42px;height:42px;left:calc(${s.b}% - 21px);top:calc(${100 - s.m}% - 21px)`;
+  plot.appendChild(a);
+});
+$("#mxlist").innerHTML = QORDER.map((q, qi) => `
+  <div class="grp" data-qc="${q}" data-step="${qi + 1}">
+    <h4 data-q-label="${q}"></h4>
+    <ul>${SH.filter(s => quad(s) === q).map(s => `<li><b>${s.n}</b> <strong>${s.short}</strong>: ${s.ws}</li>`).join("")}</ul>
+  </div>`).join("");
+
+/* ===== Dia 11: netwerk ===== */
+const net = $(".s-net");
+Object.entries(NET).forEach(([id, [x, y]]) => {
+  if (id === "hub") return;
+  const a = document.createElement("i");
+  a.className = "anchor"; a.dataset.node = id; a.dataset.size = 58; a.dataset.lp = NETLP[id] || "b";
+  a.style.cssText = `width:58px;height:58px;left:${x - 29}px;top:${y - 29}px`;
+  net.appendChild(a);
+});
+const svgNS = "http://www.w3.org/2000/svg";
+const edgesSvg = $("#edges"), netlabels = $("#netlabels");
+EDGES.forEach(e => {
+  const [x1, y1] = NET[e.a], [x2, y2] = NET[e.b];
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy);
+  const bend = e.t === "botst" ? .08 : -.06;
+  const cx = mx - dy / len * len * bend, cy = my + dx / len * len * bend;
+  const p = document.createElementNS(svgNS, "path");
+  p.setAttribute("d", `M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}`);
+  p.setAttribute("class", e.t); p.setAttribute("pathLength", "1"); p.dataset.step = e.s;
+  edgesSvg.appendChild(p);
+  const t = e.at ?? .5, u = 1 - t;
+  const lx = u * u * x1 + 2 * u * t * cx + t * t * x2, ly = u * u * y1 + 2 * u * t * cy + t * t * y2;
+  const l = document.createElement("div");
+  l.className = "elabel " + e.t; l.dataset.step = e.s; l.textContent = e.label;
+  l.style.left = lx + "px"; l.style.top = ly + "px";
+  netlabels.appendChild(l);
+});
+
+/* ===== Dia 13: mini-matrix met verschuivingen ===== */
+const mini = $("#mini");
+SH.forEach(s => {
+  const a = document.createElement("i");
+  a.className = "anchor"; a.dataset.node = s.id; a.dataset.size = 28;
+  a.style.cssText = `position:absolute;width:28px;height:28px;left:calc(${s.b}% - 14px);top:calc(${100 - s.m}% - 14px)`;
+  mini.appendChild(a);
+});
+(() => {
+  const P = (b, m) => [b / 100 * 500, (100 - m) / 100 * 500];
+  const mk = byId.makers, eu = byId.eu;
+  const [a1, b1] = P(mk.b, mk.m + 7), [a2, b2] = P(mk.b, 66);
+  const [c1, d1] = P(eu.b + 5, eu.m), [c2, d2] = P(64, eu.m);
+  $("#shift").innerHTML = `<defs><marker id="arw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#EDF0F5" stroke="none"/></marker></defs>
+    <path d="M${a1} ${b1} L${a2} ${b2}"/><text x="${a1 + 16}" y="${(b1 + b2) / 2 + 4}">als de NYT wint</text>
+    <path d="M${c1} ${d1} L${c2} ${d2}"/><text x="${c1 - 6}" y="${d1 - 22}">strengere EU</text>`;
+})();
+
+/* ===== Poster ===== */
+const pplot = $("#pplot");
+SH.forEach(s => {
+  const d = document.createElement("span");
+  d.className = "pdot " + quad(s); d.textContent = s.n;
+  d.style.left = s.b + "%"; d.style.top = (100 - s.m) + "%";
+  d.dataset.id = s.id;
+  pplot.appendChild(d);
+});
+$("#pquads").innerHTML = QORDER.map(q => `
+  <div class="pqb ${q}"><h4><span data-q-label="${q}"></span><small>${QSUB[q]}</small></h4>
+  <ul>${SH.filter(s => quad(s) === q).map(s => `<li><i>${s.n}</i><b>${s.name}</b> (${s.m}/${s.b}): ${s.why}</li>`).join("")}</ul></div>`).join("");
+
+/* ===== Bronnenlijst ===== */
+const refLi = r => `<li>${r.replace(/(https?:\/\/\S+)/, '<a href="$1" target="_blank" rel="noopener">$1</a>')}</li>`;
+const half = Math.ceil(REFS.length / 2);
+$("#refs1").innerHTML = REFS.slice(0, half).map(refLi).join("");
+$("#refs2").innerHTML = REFS.slice(half).map(refLi).join("");
+
+/* ===== Labels zonder botsingen ===== */
+function overlap(a, b){ const w = Math.min(a.x2, b.x2) - Math.max(a.x1, b.x1), h = Math.min(a.y2, b.y2) - Math.max(a.y1, b.y1); return w > 0 && h > 0 ? w * h : 0; }
+function placeLabels(items, W, H, font, fh, gap, order){
+  const dots = items.map(it => ({x1:it.x - it.r, y1:it.y - it.r, x2:it.x + it.r, y2:it.y + it.r}));
+  const placed = [];
+  items.forEach(it => {
+    const w = textW(it.text, font), h = fh;
+    const c = {
+      r:{x1:it.x + it.r + gap, y1:it.y - h / 2},
+      l:{x1:it.x - it.r - gap - w, y1:it.y - h / 2},
+      b:{x1:it.x - w / 2, y1:it.y + it.r + gap},
+      t:{x1:it.x - w / 2, y1:it.y - it.r - gap - h}
+    };
+    let best = null, bs = Infinity;
+    for (const k of order) {
+      const R = {x1:c[k].x1, y1:c[k].y1, x2:c[k].x1 + w, y2:c[k].y1 + h};
+      let sc = 0;
+      sc += Math.max(0, -R.x1) * h * 3 + Math.max(0, R.x2 - W) * h * 3 + Math.max(0, -R.y1) * w * 3 + Math.max(0, R.y2 - H) * w * 3;
+      dots.forEach(d => sc += overlap(R, d) * 2);
+      if (it.q) { const inside = overlap(R, it.q); sc += (w * h - inside) * 1.5; }
+      placed.forEach(p => sc += overlap(R, p) * 2);
+      if (sc < bs) { bs = sc; best = {k, R}; }
+      if (sc === 0) break;
+    }
+    placed.push(best.R); it.lp = best.k; it.R = best.R;
+  });
+  return items;
+}
+function layoutLabels(){
+  // matrix op dia 10
+  const W = plot.offsetWidth, H = plot.offsetHeight;
+  const qbox = (s, W, H) => ({x1:s.b >= 50 ? W / 2 : 0, x2:s.b >= 50 ? W + 40 : W / 2, y1:s.m >= 50 ? -10 : H / 2, y2:s.m >= 50 ? H / 2 : H + 10});
+  const items = SH.map(s => ({id:s.id, x:s.b / 100 * W, y:(100 - s.m) / 100 * H, r:21, text:s.short, q:qbox(s, W, H)}));
+  placeLabels(items, W + 40, H + 10, '600 22px "Instrument Sans", system-ui, sans-serif', 26, 10, ["r","l","b","t"]);
+  items.forEach(it => { const a = $(`.anchor[data-node="${it.id}"]`, plot); if (a) a.dataset.lp = it.lp; });
+  // poster
+  $$(".plbl", pplot).forEach(e => e.remove());
+  const pw = pplot.offsetWidth, ph = pplot.offsetHeight;
+  const pitems = SH.map(s => ({id:s.id, x:s.b / 100 * pw, y:(100 - s.m) / 100 * ph, r:10, text:s.name, q:qbox(s, pw, ph)}));
+  placeLabels(pitems, pw, ph, '600 11.5px "Instrument Sans", system-ui, sans-serif', 13, 5, ["r","l","b","t"]);
+  pitems.forEach(it => {
+    const l = document.createElement("span");
+    l.className = "plbl"; l.textContent = it.text;
+    l.style.left = it.R.x1 + "px"; l.style.top = it.R.y1 + "px";
+    pplot.appendChild(l);
+  });
+}
+
+/* ===== Vaknamen (standaard of zoals op de dia) ===== */
+let labelMode = store.get("sh-labels") === "dia" ? "dia" : "std";
+function renderLabels(){ $$("[data-q-label]").forEach(el => el.textContent = QLAB[labelMode][el.dataset.qLabel]); }
+renderLabels();
+
+/* ===== De cast ===== */
+const cast = $("#cast"), nodes = {};
+SH.forEach((s, i) => {
+  const el = document.createElement("div");
+  el.className = "node"; el.dataset.q = quad(s); el.dataset.lp = "n";
+  el.style.setProperty("--dl", (i * 32) + "ms");
+  el.innerHTML = `<div class="wob" style="--dd:${-i * 1.3}s"><span class="dot">${s.n}</span><span class="lbl">${s.short}</span></div>`;
+  cast.appendChild(el); nodes[s.id] = el;
+});
+$$(".anchor[data-size]").forEach(a => { if (!a.style.width) { a.style.width = a.style.height = a.dataset.size + "px"; } });
+function offsetIn(el, root){ let x = 0, y = 0, e = el; while (e && e !== root) { x += e.offsetLeft; y += e.offsetTop; e = e.offsetParent; } return {x, y}; }
+function layoutCast(){
+  const sl = slides[cur];
+  cast.dataset.mode = sl.dataset.cast || "";
+  const seen = new Set();
+  $$(".anchor", sl).forEach(a => {
+    const n = nodes[a.dataset.node]; if (!n) return;
+    if (+(a.dataset.step || 0) > step) return;
+    const p = offsetIn(a, sl), w = a.offsetWidth, h = a.offsetHeight;
+    n.style.setProperty("--x", (p.x + w / 2) + "px");
+    n.style.setProperty("--y", (p.y + h / 2) + "px");
+    n.style.setProperty("--s", (+a.dataset.size || w) + "px");
+    n.style.setProperty("--lf", (sl.classList.contains("s-net") ? 21 : 22) + "px");
+    n.dataset.lp = a.dataset.lp || "n";
+    n.classList.add("vis"); seen.add(a.dataset.node);
+  });
+  Object.entries(nodes).forEach(([id, n]) => { if (!seen.has(id)) n.classList.remove("vis"); });
+}
+
+/* ===== Navigatie ===== */
+let cur = 0, step = 0, busy = false;
+const maxStep = i => +(slides[i].dataset.steps || 0);
+function applySteps(){ $$("[data-step]", slides[cur]).forEach(el => el.classList.toggle("shown", +el.dataset.step <= step)); }
+function countUp(sl){
+  if (reduce) return;
+  $$("[data-count]", sl).forEach(el => {
+    const end = parseFloat(el.dataset.count), dec = +(el.dataset.dec || 0), pre = el.dataset.pre || "", suf = el.dataset.suf || "";
+    const fmt = v => pre + v.toLocaleString("nl-NL", {minimumFractionDigits:dec, maximumFractionDigits:dec}) + suf;
+    const t0 = performance.now(), D = 1400;
+    const tick = now => { const k = Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - k, 3); el.textContent = fmt(end * e); if (k < 1) requestAnimationFrame(tick); };
+    el.textContent = fmt(0); setTimeout(() => requestAnimationFrame(tick), 350);
+  });
+}
+function hud(){
+  $("#count").innerHTML = `<b>${pad2(cur + 1)}</b> / ${N}`;
+  $("#prog").style.setProperty("--p", ((cur + (maxStep(cur) ? step / (maxStep(cur) + 1) : 0)) / (N - 1) * 100) + "%");
+  const g = (slides[cur].dataset.glow || "960,540").split(",");
+  stage.querySelector(".bg-glow").style.setProperty("--gx", g[0] + "px");
+  stage.querySelector(".bg-glow").style.setProperty("--gy", g[1] + "px");
+  try { history.replaceState(null, "", "#dia-" + (cur + 1)); } catch(e) {}
+  renderNotes(); markOverview();
+}
+function show(i, st, dir){
+  const prev = slides[cur], next = slides[i];
+  const tr = dir > 0 ? (next.dataset.tr || "rise") : "rise";
+  const swap = () => {
+    if (prev !== next) {
+      prev.classList.remove("on", "play", "zoom");
+      next.classList.add("on");
+      next.classList.remove("play"); void next.offsetWidth; next.classList.add("play");
+      countUp(next);
+    }
+    cur = i; step = st; applySteps(); layoutCast(); hud();
+  };
+  if (prev === next || reduce) { swap(); return; }
+  busy = true;
+  const out = tr === "zoom"
+    ? [{opacity:1, transform:"none", filter:"blur(0)"}, {opacity:0, transform:"scale(1.18)", filter:"blur(10px)"}]
+    : [{opacity:1, transform:"none", filter:"blur(0)"}, {opacity:0, transform:`translateX(${dir > 0 ? -70 : 70}px)`, filter:"blur(8px)"}];
+  if (tr === "wipe") {
+    const w = $("#wipe");
+    w.querySelector("small").textContent = next.dataset.wipeSub || "";
+    w.querySelector("span").textContent = next.dataset.wipe || next.dataset.title;
+    w.animate([{clipPath:"inset(0 100% 0 0)"}, {clipPath:"inset(0 0% 0 0)"}], {duration:480, easing:"cubic-bezier(.7,0,.3,1)", fill:"forwards"}).onfinish = () => {
+      swap();
+      setTimeout(() => {
+        busy = false;
+        w.animate([{clipPath:"inset(0 0 0 0%)"}, {clipPath:"inset(0 0 0 100%)"}], {duration:540, easing:"cubic-bezier(.7,0,.3,1)", fill:"forwards"});
+      }, 300);
+    };
+    return;
+  }
+  prev.classList.add("leaving");
+  const a = prev.animate(out, {duration:tr === "zoom" ? 620 : 420, easing:"cubic-bezier(.6,0,.4,1)", fill:"forwards"});
+  setTimeout(() => { swap(); busy = false; }, tr === "zoom" ? 300 : 200);
+  a.onfinish = () => { prev.classList.remove("leaving"); a.cancel(); };
+}
+function go(i, st = 0){
+  i = Math.max(0, Math.min(N - 1, i));
+  if (i === cur) { step = st; applySteps(); layoutCast(); hud(); return; }
+  const dir = i > cur ? 1 : -1;
+  show(i, st, dir);
+}
+function next(){
+  if (busy) return;
+  hideHint();
+  if (zoomed()) { unzoom(); return; }
+  if (cur === 0 && !timer.started) timer.start();
+  if (step < maxStep(cur)) { step++; applySteps(); layoutCast(); hud(); }
+  else if (cur < N - 1) go(cur + 1, 0);
+}
+function prev(){
+  if (busy) return;
+  if (zoomed()) { unzoom(); return; }
+  if (step > 0) { step--; applySteps(); layoutCast(); hud(); }
+  else if (cur > 0) go(cur - 1, maxStep(cur - 1));
+}
+
+/* ===== Poster-zoom ===== */
+const zoomed = () => slides[cur].classList.contains("s-poster") && slides[cur].classList.contains("zoom");
+function unzoom(){ slides[cur].classList.remove("zoom"); }
+function toggleZoom(){ const s = slides[cur]; if (!s.classList.contains("s-poster")) { toast("Inzoomen kan op de posterdia (14)"); return; } s.classList.toggle("zoom"); }
+let zy = 20;
+stage.addEventListener("mousemove", e => {
+  if (!zoomed()) return;
+  const r = $(".poster-hold").getBoundingClientRect();
+  const s = slides[cur];
+  zy = Math.max(0, Math.min(100, (e.clientY - r.top) / r.height * 100));
+  s.style.setProperty("--zx", Math.max(0, Math.min(100, (e.clientX - r.left) / r.width * 100)) + "%");
+  s.style.setProperty("--zy", zy + "%");
+});
+
+/* ===== Timer ===== */
+const timer = {
+  t0:0, acc:0, started:false, running:false, id:0,
+  start(){ this.started = true; this.running = true; this.t0 = performance.now(); clearInterval(this.id); this.id = setInterval(() => this.draw(), 250); this.draw(); },
+  pause(){ if (!this.running) return; this.acc += performance.now() - this.t0; this.running = false; this.draw(); },
+  toggle(){ this.running ? this.pause() : this.start(); },
+  reset(){ this.acc = 0; this.t0 = performance.now(); this.draw(); },
+  ms(){ return this.acc + (this.running ? performance.now() - this.t0 : 0); },
+  text(){ const s = Math.floor(this.ms() / 1000); return pad2(Math.floor(s / 60)) + ":" + pad2(s % 60); },
+  draw(){ const el = $("#timer"); el.textContent = this.text(); el.className = "hud hud-timer num " + (this.running ? "run" : (this.started ? "paused" : "")); const nt = $("#notes .nt"); if (nt) nt.textContent = this.text(); }
+};
+
+/* ===== Spreektekst, overzicht, hulp ===== */
+function renderNotes(){
+  const sl = slides[cur], a = $(".notes", sl);
+  const nx = slides[cur + 1];
+  $("#notes .nh").innerHTML = `<b>Dia ${cur + 1} / ${N}</b><span>${sl.dataset.title}</span><span>± ${a ? a.dataset.time : ""} min</span>${maxStep(cur) ? `<span>stap ${step} / ${maxStep(cur)}</span>` : ""}<span>Volgende: ${nx ? nx.dataset.title : "einde"}</span><span class="nt">${timer.text()}</span>`;
+  $("#notes .nb").textContent = a ? a.textContent.trim() : "";
+}
+const tiles = $("#overview .tiles");
+tiles.innerHTML = slides.map((s, i) => `<button type="button" data-i="${i}"><small>Dia ${pad2(i + 1)}</small><span>${s.dataset.title}</span></button>`).join("");
+tiles.addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; toggle("overview", false); go(+b.dataset.i, 0); });
+function markOverview(){ $$("button", tiles).forEach((b, i) => b.classList.toggle("cur", i === cur)); }
+function toggle(id, force){
+  const el = $("#" + id), on = force ?? !el.classList.contains("open");
+  el.classList.toggle("open", on);
+  if (id === "overview" && on) { const b = $("button.cur", tiles) || $("button", tiles); b && b.focus(); }
+  return on;
+}
+let toastT = 0;
+function toast(msg){ const t = $("#toast"); t.textContent = msg; t.classList.add("open"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("open"), 2200); }
+function fullscreen(){
+  try {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else (document.documentElement.requestFullscreen?.() || Promise.reject()).catch(() => toast("Volledig scherm werkt hier niet; gebruik F11 of de knop van je browser"));
+  } catch(e) { toast("Volledig scherm werkt hier niet; gebruik F11"); }
+}
+let hinted = false;
+function hideHint(){ if (hinted) return; hinted = true; $("#hint").classList.add("gone"); }
+setTimeout(hideHint, 7000);
+
+/* ===== Toetsen, klikken, vegen ===== */
+let digits = "", digitT = 0;
+addEventListener("keydown", e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key;
+  if (k === "Escape") { ["overview","help","black"].forEach(id => toggle(id, false)); unzoom(); return; }
+  if ($("#overview").classList.contains("open") && k !== "o" && k !== "O") return;
+  if (/^[0-9]$/.test(k)) { digits += k; clearTimeout(digitT); digitT = setTimeout(() => digits = "", 1500); return; }
+  if (k === "Enter" && digits) { go(+digits - 1, 0); digits = ""; e.preventDefault(); return; }
+  if (zoomed() && (k === "ArrowUp" || k === "ArrowDown")) { zy = Math.max(0, Math.min(100, zy + (k === "ArrowDown" ? 12 : -12))); slides[cur].style.setProperty("--zy", zy + "%"); e.preventDefault(); return; }
+  switch (k) {
+    case "ArrowRight": case "ArrowDown": case "PageDown": case " ": case "Enter": e.preventDefault(); next(); break;
+    case "ArrowLeft": case "ArrowUp": case "PageUp": case "Backspace": e.preventDefault(); prev(); break;
+    case "Home": go(0, 0); break;
+    case "End": go(N - 1, 0); break;
+    case "n": case "N": toggle("notes"); renderNotes(); break;
+    case "o": case "O": toggle("overview"); break;
+    case "h": case "H": case "?": toggle("help"); break;
+    case "f": case "F": fullscreen(); break;
+    case "b": case "B": case ".": toggle("black"); break;
+    case "z": case "Z": toggleZoom(); break;
+    case "t": timer.toggle(); toast(timer.running ? "Timer loopt" : "Timer gepauzeerd"); break;
+    case "T": timer.reset(); toast("Timer op nul"); break;
+    case "l": case "L":
+      labelMode = labelMode === "std" ? "dia" : "std"; store.set("sh-labels", labelMode); renderLabels();
+      toast(labelMode === "std" ? "Vaknamen: standaardmodel (Mendelow)" : "Vaknamen: variant uit je PowerPoint (Aandacht geven)"); break;
+  }
+});
+stage.addEventListener("click", e => {
+  if (e.target.closest("a,button")) return;
+  if (zoomed()) { unzoom(); return; }
+  e.clientX > innerWidth * .3 ? next() : prev();
+});
+let sx = 0, sy = 0;
+addEventListener("touchstart", e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:true});
+addEventListener("touchend", e => {
+  const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) { dx < 0 ? next() : prev(); }
+}, {passive:true});
+$("#b-prev").onclick = prev; $("#b-next").onclick = next;
+$("#b-notes").onclick = () => { toggle("notes"); renderNotes(); };
+$("#b-over").onclick = () => toggle("overview");
+$("#b-full").onclick = fullscreen;
+$("#b-help").onclick = () => toggle("help");
+let mouseT = 0;
+addEventListener("mousemove", () => { document.body.classList.add("mouse"); document.body.classList.remove("nomouse"); clearTimeout(mouseT); mouseT = setTimeout(() => { document.body.classList.remove("mouse"); document.body.classList.add("nomouse"); }, 2200); });
+
+/* ===== Start ===== */
+function boot(){
+  layoutLabels();
+  const m = /^#dia-(\d+)$/.exec(location.hash);
+  const start = m ? Math.max(0, Math.min(N - 1, +m[1] - 1)) : 0;
+  cur = start; step = 0;
+  slides[cur].classList.add("on", "play");
+  countUp(slides[cur]);
+  applySteps(); layoutCast(); hud();
+  if (start > 0) hideHint();
+}
+boot();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { layoutLabels(); layoutCast(); });
+addEventListener("hashchange", () => { const m = /^#dia-(\d+)$/.exec(location.hash); if (m && +m[1] - 1 !== cur) go(+m[1] - 1, 0); });
+window.__deck = { go, next, prev, get cur(){ return cur; }, get step(){ return step; }, toggleZoom };
+})();
+</script>
+</body>
+</html>

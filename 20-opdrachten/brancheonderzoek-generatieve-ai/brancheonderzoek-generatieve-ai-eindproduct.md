@@ -581,6 +581,8 @@ Jort maakt de vlog zelf (minimaal 1 minuut). Het bezoek heeft nog niet plaatsgev
 
 ## Lesweek 9 – Stakeholderanalyse
 
+> **Vervangen (2026-11-10):** gebruik voor het portfolio de nieuwe, uitgebreidere versie in [[stakeholderanalyse-openai-eindproduct]] (met concurrenten in plaats van de Autoriteit Persoonsgegevens en nieuwe scores). Deze oude versie blijft hieronder staan ter vergelijking.
+
 ### Stakeholders
 
 Een Power Interest Matrix zet stakeholders op twee assen: macht (hoeveel invloed ze op het bedrijf hebben) en belang (hoe sterk ze geraakt worden door wat het bedrijf doet). Zo ontstaan vier kwadranten. Nauw betrekken: veel macht en veel belang. Tevreden houden: veel macht, weinig belang. Informeren: weinig macht, veel belang. Monitoren: weinig macht en weinig belang. Een score van 50 of hoger telt als hoog.

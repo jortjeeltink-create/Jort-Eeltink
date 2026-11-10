@@ -241,3 +241,4 @@ De Europese Commissie heeft "middel" als interesse en staat dus op de grens. Je 
 - [[ai-gebruikers-en-klanten]]: klantonderzoek, persona's en customer journey
 - [[marketing-lw03]]: uitleg vijf krachten van Porter en stakeholders (meso-omgeving)
 - [[portfolio]]
+- [[openai-stakeholders]]: verdieping en update stakeholders (november 2026)
